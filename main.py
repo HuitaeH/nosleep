@@ -7,6 +7,7 @@ from blink.main import Blink
 DISPLAY_HEADPOSE = True
 DISPLAY_GAZE = True
 DISPLAY_BLINK = True
+
 def main():
     print("Initializing modules...")
     cap = cv2.VideoCapture(0)
