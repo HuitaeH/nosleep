@@ -2,8 +2,11 @@
 사용법
 
 가상환경 세팅 등 진행 후
+
 ```pip install -r requirements.txt```
+
 ```python main.py```
+
 
 ## package : blink
 resource : https://github.com/Pushtogithub23/Eye-Blink-Detection-using-MediaPipe-and-OpenCV
