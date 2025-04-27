@@ -15,7 +15,9 @@ DISPLAY_BLINK = True
 def main():
     print("Initializing modules...")
     cap = cv2.VideoCapture(0)
-    hp = HeadPose(display=DISPLAY_HEADPOSE)
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    hp = HeadPose(display=DISPLAY_HEADPOSE, frame_width=frame_width, frame_height=frame_height)
     gz = Gaze(display=DISPLAY_GAZE)
     bk = Blink(display=DISPLAY_BLINK)
     graph = ConcentrationGraph()
@@ -41,6 +43,7 @@ def main():
 
     cap.release()
     cv2.destroyAllWindows()
+    gz.close_face_mesh()
 
 class ConcentrationGraph:
     # Define colors for visualization
