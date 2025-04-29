@@ -1,3 +1,4 @@
+
 import numpy as np
 import cv2
 import config
@@ -157,7 +158,7 @@ class GazeGraph:
             linestyle='--'
         )
 
-        # Concentration curve ⭐️ 추가
+        # Concentration curve ⭐️ 추�??
         self.ConcentrationCurve, = self.ax.plot(
             self.x_vals,
             self.C_vals,

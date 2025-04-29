@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import cv2
 from .blink_counter_and_EAR_plot import *
 import config
+import time
 
 class Blink:
     def __init__(self, display: bool = False):
@@ -13,7 +16,9 @@ class Blink:
         consec_frames=3,
         save_video=False,
         )
-    
+        self.last_blink_time = None
+        self.blink_intervals = []
+        self.start_time = time.time()
 
     def compute(self, frame: np.ndarray) -> float:
 
@@ -24,9 +29,31 @@ class Blink:
         frame, ear = self.blink_counter.process_frame(BlinkFrame)
         
         if ear is not None:
+            prev_blink_count = self.blink_counter.blink_counter
             self.blink_counter._update_blink_detection(ear)
+            now = time.time()
+            
+            # 깜빡임이 새로 발생된 경우
+            if self.blink_counter.blink_counter > prev_blink_count:
+                if self.last_blink_time is not None:
+                    interval = now - self.last_blink_time
+                    self.blink_intervals.append((now, interval))
+                self.last_blink_time = now
+
+            # 10초 기준으로 오래된 interval 제거
+            self.blink_intervals = [(t, interval) for t, interval in self.blink_intervals if now - t <= 10.0]
+
+            # 최근 10초간 평균 눈 감고 있던 시간 계산
+            if self.blink_intervals:
+                avg_interval = np.mean([interval for _, interval in self.blink_intervals])
+                normalized_score = min(avg_interval / 10.0, 1.0)
+            else :
+                normalized_score = 0.0
+
             #self.blink_counter._update_visualization(frame, ear, fps)
             self.blink_counter._update_plot(ear)
+        else :
+            normalized_score = 0.0
 
         if self.display:
             # Display the frame with blink overlay (if needed)
@@ -46,5 +73,6 @@ class Blink:
             )
             cv2.imshow("Blink Plot", plot_img_resized)
             pass
-
-        return 0.0
+        
+        print("normalized_score : ", normalized_score)
+        return normalized_score
