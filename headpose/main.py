@@ -14,6 +14,7 @@ from .pose_estimation import PoseEstimator
 from .utils import refine
 import time
 
+import time
 import numpy as np
 import cv2
 import config
@@ -41,69 +42,139 @@ class HeadPose:
 
         # Measure the performance with a tick meter.
         self.tm = cv2.TickMeter()
+
+        # Head down condition management 
+        self.is_pitch_down = False
+        self.pitch_down_start_time = None
+        self.pitch_down_duration = 0.0 # cumulative time 
+        self.PITCH_THRESHOLD = -10.0  # (예: pitch가 -20도 이하로 내려가면 고개 숙임으로 간주)
+        
+        # scoring 
+        self.HEAD_DOWN_THRESHOLD = 2.0 # 2초 이상 머리 떨굼 발생 시 스코어에 영향 
+        self.DECAY_RATE = 0.1 # 점수 감소 rate
+        self.RECOVERY_RATE = 0.05
+        self.prev_time = time.time()
+
+        # plotting
+        self.score_history = []
+        
         pass
 
+    
     def compute(self, frame: np.ndarray) -> float:
 
         print("HeadPose compute start")
         start_time = time.time()
         HeadPoseFrame = frame.copy()
-        # Step 1: Get faces from current frame.
-        faces, _ = self.face_detector.detect(HeadPoseFrame, 0.7)
+        score = 0.0
 
-        # Any valid face found?
+        faces, _ = self.face_detector.detect(HeadPoseFrame, 0.7)
+        pitch, yaw, roll = 0.0, 0.0, 0.0
         if len(faces) > 0:
             self.tm.start()
 
-            # Step 2: Detect landmarks. Crop and feed the face area into the
-            # mark detector. Note only the first face will be used for
-            # demonstration.
             face = refine(faces, self.frame_width, self.frame_height, 0.15)[0]
             x1, y1, x2, y2 = face[:4].astype(int)
             patch = frame[y1:y2, x1:x2]
 
-            # Run the mark detection.
             marks = self.mark_detector.detect([patch])[0].reshape([68, 2])
-
-            # Convert the locations from local face area to the global image.
             marks *= (x2 - x1)
             marks[:, 0] += x1
             marks[:, 1] += y1
 
-            # Step 3: Try pose estimation with 68 points.
             pose = self.pose_estimator.solve(marks)
 
             self.tm.stop()
 
-            # All done. The best way to show the result would be drawing the
-            # pose on the frame in realtime.
-
-            # Do you want to see the pose annotation?
             self.pose_estimator.visualize(HeadPoseFrame, pose, color=(0, 255, 0))
 
-            # Do you want to see the axes?
-            # pose_estimator.draw_axes(frame, pose)
+            # 여기 수정
+            rotation_vector, translation_vector = pose
 
-            # Do you want to see the marks?
-            # mark_detector.visualize(frame, marks, color=(0, 255, 0))
+            rotation_matrix, _ = cv2.Rodrigues(rotation_vector)
+            sy = np.sqrt(rotation_matrix[0, 0] ** 2 + rotation_matrix[1, 0] ** 2)
+            singular = sy < 1e-6
 
-            # Do you want to see the face bounding boxes?
-            # face_detector.visualize(frame, faces)
+            if not singular:
+                pitch = np.arctan2(rotation_matrix[2, 1], rotation_matrix[2, 2])
+                yaw = np.arctan2(-rotation_matrix[2, 0], sy)
+                roll = np.arctan2(rotation_matrix[1, 0], rotation_matrix[0, 0])
+            else:
+                pitch = np.arctan2(-rotation_matrix[1, 2], rotation_matrix[1, 1])
+                yaw = np.arctan2(-rotation_matrix[2, 0], sy)
+                roll = 0
 
+            pitch = np.degrees(pitch)
+            yaw = np.degrees(yaw)
+            roll = np.degrees(roll)
 
+            print(f"Pitch: {pitch:.2f}, Yaw: {yaw:.2f}, Roll: {roll:.2f}")
+
+            # ⭐ pitch를 기반으로 점수 계산
+            max_pitch = 30
+            # score = max(0.0, 1.0 - abs(pitch) / max_pitch)
+
+            current_time = time.time()  # 현재 시간(초)
+
+            if pitch <= self.PITCH_THRESHOLD:
+                if not self.is_pitch_down:
+                    # 새로 고개를 숙이기 시작한 경우
+                    self.is_pitch_down = True
+                    self.pitch_down_start_time = current_time
+                else:
+                    # 이미 숙이고 있는 상태 → 지속 시간 계산
+                    self.pitch_down_duration = current_time - self.pitch_down_start_time
+            else:
+                if self.is_pitch_down:
+                    # 고개를 다시 들었을 때 초기화
+                    self.is_pitch_down = False
+                    self.pitch_down_start_time = None
+                    self.pitch_down_duration = 0.0
+            if self.pitch_down_duration <= self.HEAD_DOWN_THRESHOLD:
+                score = 1.0
+            else:
+                # 고개 숙인 시간이 길수록 score 감소
+                decay_rate = self.DECAY_RATE  # 초당 0.1씩 감소
+                excess_time = self.pitch_down_duration - self.HEAD_DOWN_THRESHOLD
+                score = max(0.0, 1.0 - decay_rate * excess_time)
+
+            # 매 프레임 score 저장
+            self.score_history.append(score)
 
         if self.display:
-            # Display the frame with head pose overlay (if needed)
-            # Draw the FPS on screen.
+            # FPS 표시
             cv2.rectangle(HeadPoseFrame, (0, 0), (90, 30), (0, 0, 0), cv2.FILLED)
             cv2.putText(HeadPoseFrame, f"FPS: {self.tm.getFPS():.0f}", (10, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255))
             
+            # pitch, yaw, roll 표시
+            info_y_start = 40  # 시작 y좌표 (FPS 바로 아래)
+            line_spacing = 20  # 각 줄 간격
+
+            cv2.putText(HeadPoseFrame, f"Pitch: {pitch:.1f}", (10, info_y_start),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            cv2.putText(HeadPoseFrame, f"Yaw: {yaw:.1f}", (10, info_y_start + line_spacing),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            cv2.putText(HeadPoseFrame, f"Roll: {roll:.1f}", (10, info_y_start + line_spacing * 2),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            # pitch down 지속 시간
+            cv2.putText(HeadPoseFrame, f"Down Time: {self.pitch_down_duration:.1f}s",
+                        (10, info_y_start + line_spacing * 3),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+
+            # 현재 score
+            cv2.putText(HeadPoseFrame, f"Score: {score:.2f}",
+                        (10, info_y_start + line_spacing * 4),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1, cv2.LINE_AA)
+
+            # 창 설정
             cv2.namedWindow("HeadPose", cv2.WINDOW_NORMAL)
             cv2.resizeWindow("HeadPose", config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
             cv2.putText(HeadPoseFrame, "HeadPose", (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255,255,255), 2)
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
             cv2.imshow("HeadPose", HeadPoseFrame)
-            pass
+
+
         print("HeadPose compute end, time : ", time.time() - start_time)
-        return 0.0
+        return score
+
