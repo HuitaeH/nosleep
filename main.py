@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import cv2
 import numpy as np
 from headpose.main import HeadPose
@@ -26,17 +27,18 @@ def main():
     while True:
         ret, frame = cap.read()
         if not ret:
+            print("Failed to capture video frame.")
             break
 
-        # ì„¸ ëª¨ë“ˆ ëª¨ë‘ 0~1 ìŠ¤ì½”ì–´ ë°˜í™˜
+        # ?„¸ ëª¨ë“ˆ ëª¨ë‘ 0~1 ?Š¤ì½”ì–´ ë°˜í™˜
         head_score = hp.compute(frame)
         gaze_score = gz.compute(frame)
         blink_score = bk.compute(frame)
 
-        # ì „ì²´ ì§‘ì¤‘ë„ ì˜ˆì‹œ (ê°€ì¤‘ í‰ê· )
+        # ? „ì²? ì§‘ì¤‘?„ ?˜ˆ?‹œ (ê°?ì¤? ?‰ê·?)
         overall = (head_score*0.4 + gaze_score*0.4 + blink_score*0.2)
         graph._update_plot(overall)
-        print(f"H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f} â†’ O: {overall:.2f}")
+        print(f"H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}, overall: {overall:.2f}")
         graph.show_graph()
         if cv2.waitKey(1) & 0xFF == 27:
             break
@@ -121,7 +123,7 @@ class ConcentrationGraph:
         self.x_vals = list(range(self.max_frames))
         self.y_vals = [0] * self.max_frames
         self.Y_vals = [self.CONCENT_THRESHOLD] * self.max_frames
-        self.C_vals = [100] * self.max_frames  # â­ï¸ ì´ˆê¸° concentration 100ìœ¼ë¡œ ì„¤ì •
+        self.C_vals = [100] * self.max_frames  # â­ï¸ ì´ˆê¸° concentration 100?œ¼ë¡? ?„¤? •
 
         # Threshold line
         self.threshold_line, = self.ax.plot(
@@ -133,7 +135,7 @@ class ConcentrationGraph:
             linestyle='--'
         )
 
-        # Concentration curve â­ï¸ ì¶”ê°€
+        # Concentration curve â­ï¸ ì¶”ê??
         self.ConcentrationCurve, = self.ax.plot(
             self.x_vals,
             self.C_vals,
@@ -142,7 +144,7 @@ class ConcentrationGraph:
             linewidth=2
         )
 
-        # Legend ì¶”ê°€
+        # Legend ì¶”ê??
         self.legend = self.ax.legend(
             handles=[self.threshold_line, self.ConcentrationCurve],
             loc='upper right',
@@ -160,7 +162,7 @@ class ConcentrationGraph:
             self.frame_numbers.pop(0)
             self.concentration_values.pop(0)
 
-        # Concentration ê°’ì„ 0~1ë¡œ ì •ê·œí™”í•´ì„œ ì¶”ê°€
+        # Concentration ê°’ì„ 0~1ë¡? ? •ê·œí™”?•´?„œ ì¶”ê??
         normalized_concentration = value / 100.0
         self.concentration_values.append(normalized_concentration)
         self.frame_numbers.append(self.frame_number)

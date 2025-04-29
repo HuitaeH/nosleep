@@ -1,3 +1,4 @@
+
 import numpy as np
 import cv2
 import config
@@ -21,8 +22,8 @@ class Gaze:
         pass
 
     def close_face_mesh(self):
-        #호출필요
-        self._face_mesh.close()
+        #?��출필?��
+        self.face_mesh.close()
 
     def compute(self, frame: np.ndarray) -> float:
 
@@ -124,7 +125,7 @@ class GazeGraph:
         self.x_vals = list(range(self.max_frames))
         self.y_vals = [0] * self.max_frames
         self.Y_vals = [self.CONCENT_THRESHOLD] * self.max_frames
-        self.C_vals = [100] * self.max_frames  # ⭐️ 초기 concentration 100으로 설정
+        self.C_vals = [100] * self.max_frames  # ⭐️ 초기 concentration 100?���? ?��?��
 
         # Threshold line
         self.threshold_line, = self.ax.plot(
@@ -136,7 +137,7 @@ class GazeGraph:
             linestyle='--'
         )
 
-        # Concentration curve ⭐️ 추가
+        # Concentration curve ⭐️ 추�??
         self.ConcentrationCurve, = self.ax.plot(
             self.x_vals,
             self.C_vals,
@@ -145,7 +146,7 @@ class GazeGraph:
             linewidth=2
         )
 
-        # Legend 추가
+        # Legend 추�??
         self.legend = self.ax.legend(
             handles=[self.threshold_line, self.ConcentrationCurve],
             loc='upper right',
@@ -163,7 +164,7 @@ class GazeGraph:
             self.frame_numbers.pop(0)
             self.concentration_values.pop(0)
 
-        # Concentration 값을 0~1로 정규화해서 추가
+        # Concentration 값을 0~1�? ?��규화?��?�� 추�??
         normalized_concentration = value / 100.0
         self.concentration_values.append(normalized_concentration)
         self.frame_numbers.append(self.frame_number)
