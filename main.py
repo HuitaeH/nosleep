@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import cv2
 import numpy as np
 from headpose.main import HeadPose
@@ -7,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import config
 
-
+DISPLAY = True
 DISPLAY_HEADPOSE = True
 DISPLAY_GAZE = True
 DISPLAY_BLINK = True
@@ -26,9 +27,10 @@ def main():
     while True:
         ret, frame = cap.read()
         if not ret:
+            print("Failed to capture video frame.")
             break
 
-        # 세 모듈 모두 0~1 스코어 반환
+        # ?�� 모듈 모두 0~1 ?��코어 반환
         head_score = hp.compute(frame)
         gaze_score = gz.compute(frame)
         blink_score = bk.compute(frame)
@@ -37,6 +39,21 @@ def main():
         overall = (head_score*0.3 + gaze_score*0.3 + blink_score*0.4)
         graph._update_plot(overall, gaze_score, blink_score, head_score)
         print(f"H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f} → O: {overall:.2f}")
+        if DISPLAY:
+            # 2) 가로로 이어붙이기
+            all_combined = cv2.hconcat([hp.frame,
+                                        gz.frame,
+                                        bk.frame])
+            # (또는 np.hstack([…, …, …]) 사용 가능)
+
+            # 3) 창 띄우기
+            cv2.namedWindow("All Combined", cv2.WINDOW_NORMAL)
+            # 가로 너비 3×W, 세로 높이 2×H 로 리사이즈
+            cv2.resizeWindow("All Combined",
+                            config.WINDOW_WIDTH * 3,
+                            config.WINDOW_HEIGHT * 2)
+            cv2.imshow("All Combined", all_combined)
+            
         graph.show_graph()
         if cv2.waitKey(1) & 0xFF == 27:
             break
