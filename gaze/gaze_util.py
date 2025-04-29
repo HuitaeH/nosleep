@@ -117,11 +117,5 @@ def gaze(frame, points):
         v_angle = math.degrees(math.atan2(dy, focal_length))   # 수직 편차 각도
 
         # 화면에 표시
-        cv2.putText(frame,
-                    f"H: {h_angle:.1f}°, V: {v_angle:.1f}°",
-                    (int(cx)-100, int(cy)-20),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.7,
-                    (0,255,0), 2)
         return v_angle, h_angle
     return 0.0, 0.0  # Default return if transformation fails

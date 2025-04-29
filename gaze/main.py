@@ -5,11 +5,30 @@ import config
 import gaze.gaze_util as gaze_util
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-
+import time
 import mediapipe as mp
 
 
 mp_face_mesh = mp.solutions.face_mesh  # initialize the face mesh model
+
+##score 가중치
+def get_gaze_score(vertical: float, horizontal: float) -> float:
+    """
+    Calculate the gaze score based on vertical and horizontal angles.
+    This is a placeholder function. You can implement your own logic here.
+    """
+    # Example: simple average of vertical and horizontal angles as a score
+    ## Vertical
+    v_score = np.interp(vertical, [-5.0, 0.0],[1.0, 0.0])
+    h_score = np.interp(
+        np.abs(horizontal),
+        [15, 30.0],   # 입력 구간
+        [1.0,  0.0]     # 출력 구간
+    )
+    print("vertical : ", vertical, "horizontal : ", horizontal)
+    print("v_score : ", v_score, "h_score : ", h_score) 
+    ### horizontal
+    return v_score * h_score  # Adjust weights as needed
 
 class Gaze:
     def __init__(self, display: bool = False):
@@ -21,6 +40,8 @@ class Gaze:
             min_tracking_confidence=0.5
         )
         self.graph = GazeGraph()  # Concentration graph instance
+        self.horizontal = 0.0
+        self.vertical = 0.0
 
     def close_face_mesh(self):
         #호출필요
@@ -28,7 +49,8 @@ class Gaze:
 
     def compute(self, frame: np.ndarray) -> float:
 
-        print("Gaze compute")
+        print("Gaze compute start")
+        start_time = time.time()
         GazeFrame = frame.copy()
 
         GazeFrame.flags.writeable = False
@@ -38,7 +60,9 @@ class Gaze:
 
         if results.multi_face_landmarks:
             vertical, horizontal = gaze_util.gaze(GazeFrame, results.multi_face_landmarks[0])  # gaze estimation
-            self.graph._update_plot(vertical, horizontal)
+            self.vertical = vertical + config.VERTICAL
+            self.horizontal = horizontal + config.HORIZONTAL
+            self.graph._update_plot(self.vertical, self.horizontal)  # Update the graph with the new angles
         
         if self.display:
             # Display the frame with gaze overlay (if needed)
@@ -47,6 +71,12 @@ class Gaze:
             cv2.resizeWindow("Gaze", config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
             cv2.putText(GazeFrame, "Gaze", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255,255,255), 2)
+            cv2.putText(GazeFrame,
+                    f"H: {self.horizontal:.1f}°, V: {self.vertical:.1f}°",
+                    (100, 20),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (0,255,0), 2)
             cv2.imshow("Gaze", GazeFrame)
             pass
 
@@ -58,12 +88,12 @@ class Gaze:
                 interpolation=cv2.INTER_AREA
             )
             cv2.imshow("Gaze Plot", plot_img_resized)
+        print("Gaze compute end, elapsed time : ", time.time() - start_time)
         if results.multi_face_landmarks:
             # Calculate the gaze score based on the vertical and horizontal angles
             # Here we can use a simple average of the angles as a score, or any other logic
-            gaze_score = (vertical + horizontal) / 2.0
-            gaze_score = -gaze_score
-            return float(np.clip(gaze_score, 0.0, 1.0))
+            
+            return get_gaze_score(vertical, horizontal)
         return 0.0
     
 class GazeGraph:

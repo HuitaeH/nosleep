@@ -22,7 +22,8 @@ class Blink:
 
     def compute(self, frame: np.ndarray) -> float:
 
-        print("Blink compute")
+        print("Blink compute start")
+        start_time = time.time()
         BlinkFrame = frame.copy()
         fps = 30.0
         # Process frame and get EAR
@@ -33,17 +34,17 @@ class Blink:
             self.blink_counter._update_blink_detection(ear)
             now = time.time()
             
-            # ±ôºýÀÓÀÌ »õ·Î ¹ß»ýµÈ °æ¿ì
+            # ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ß»ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
             if self.blink_counter.blink_counter > prev_blink_count:
                 if self.last_blink_time is not None:
                     interval = now - self.last_blink_time
                     self.blink_intervals.append((now, interval))
                 self.last_blink_time = now
 
-            # 10ÃÊ ±âÁØÀ¸·Î ¿À·¡µÈ interval Á¦°Å
+            # 10ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ interval ï¿½ï¿½ï¿½ï¿½
             self.blink_intervals = [(t, interval) for t, interval in self.blink_intervals if now - t <= 10.0]
 
-            # ÃÖ±Ù 10ÃÊ°£ Æò±Õ ´« °¨°í ÀÖ´ø ½Ã°£ °è»ê
+            # ï¿½Ö±ï¿½ 10ï¿½Ê°ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ö´ï¿½ ï¿½Ã°ï¿½ ï¿½ï¿½ï¿½
             if self.blink_intervals:
                 avg_interval = np.mean([interval for _, interval in self.blink_intervals])
                 normalized_score = min(avg_interval / 10.0, 1.0)
@@ -73,6 +74,6 @@ class Blink:
             )
             cv2.imshow("Blink Plot", plot_img_resized)
             pass
-        
+        print("Blink compute end, time : ", time.time() - start_time)
         print("normalized_score : ", normalized_score)
         return normalized_score

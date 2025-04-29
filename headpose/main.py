@@ -12,6 +12,7 @@ from .face_detection import FaceDetector
 from .mark_detection import MarkDetector
 from .pose_estimation import PoseEstimator
 from .utils import refine
+import time
 
 import numpy as np
 import cv2
@@ -44,7 +45,8 @@ class HeadPose:
 
     def compute(self, frame: np.ndarray) -> float:
 
-        print("HeadPose compute")
+        print("HeadPose compute start")
+        start_time = time.time()
         HeadPoseFrame = frame.copy()
         # Step 1: Get faces from current frame.
         faces, _ = self.face_detector.detect(HeadPoseFrame, 0.7)
@@ -103,4 +105,5 @@ class HeadPose:
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255,255,255), 2)
             cv2.imshow("HeadPose", HeadPoseFrame)
             pass
+        print("HeadPose compute end, time : ", time.time() - start_time)
         return 0.0
