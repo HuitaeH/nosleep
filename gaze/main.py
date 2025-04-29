@@ -23,7 +23,7 @@ class Gaze:
 
     def close_face_mesh(self):
         #호출필요
-        self._face_mesh.close()
+        self.face_mesh.close()
 
     def compute(self, frame: np.ndarray) -> float:
 
@@ -57,6 +57,12 @@ class Gaze:
                 interpolation=cv2.INTER_AREA
             )
             cv2.imshow("Gaze Plot", plot_img_resized)
+        if results.multi_face_landmarks:
+            # Calculate the gaze score based on the vertical and horizontal angles
+            # Here we can use a simple average of the angles as a score, or any other logic
+            gaze_score = (vertical + horizontal) / 2.0
+            gaze_score = -gaze_score
+            return float(np.clip(gaze_score, 0.0, 1.0))
         return 0.0
     
 class GazeGraph:
@@ -171,7 +177,7 @@ class GazeGraph:
         self.Hcurve, = self.ax.plot(
             self.x_vals,
             self.H_vals,
-            color= "#56f10d",
+            color= "#0329fc",
             label = "Horizontal Score",
             linewidth=2
         )
