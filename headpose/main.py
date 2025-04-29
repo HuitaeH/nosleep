@@ -13,6 +13,8 @@ from .mark_detection import MarkDetector
 from .pose_estimation import PoseEstimator
 from .utils import refine
 import time
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 import time
 import numpy as np
@@ -20,6 +22,8 @@ import cv2
 import config
 FACE_DETECTOR = "./headpose/assets/face_detector.onnx"
 FACE_LANDMARKS = "./headpose/assets/face_landmarks.onnx"
+HEAD_DOWN_THRESHOLD = -10.0 # 10 이상 머리 떨굼 발생 시 스코어에 영향 
+
 class HeadPose:
     def __init__(self, display: bool = False, frame_width: int = 640, frame_height: int = 480):
         self.display = display
@@ -57,6 +61,8 @@ class HeadPose:
 
         # plotting
         self.score_history = []
+        self.graph = HeadPoseGraph()
+        self.frame = None
         
         pass
 
@@ -107,6 +113,7 @@ class HeadPose:
             pitch = np.degrees(pitch)
             yaw = np.degrees(yaw)
             roll = np.degrees(roll)
+            self.graph._update_plot(pitch)
 
             print(f"Pitch: {pitch:.2f}, Yaw: {yaw:.2f}, Roll: {roll:.2f}")
 
@@ -168,13 +175,244 @@ class HeadPose:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1, cv2.LINE_AA)
 
             # 창 설정
-            cv2.namedWindow("HeadPose", cv2.WINDOW_NORMAL)
-            cv2.resizeWindow("HeadPose", config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
+            #cv2.namedWindow("HeadPose", cv2.WINDOW_NORMAL)
+            #cv2.resizeWindow("HeadPose", config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
             cv2.putText(HeadPoseFrame, "HeadPose", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
-            cv2.imshow("HeadPose", HeadPoseFrame)
+            #cv2.imshow("HeadPose", HeadPoseFrame)
+
+            ## graph
+            plot_img = self.graph.plot_to_image()
+            plot_img_resized = cv2.resize(
+                plot_img,
+                (config.WINDOW_WIDTH, config.WINDOW_HEIGHT),
+                interpolation=cv2.INTER_AREA
+            )
+            #cv2.imshow("HeadPose Plot", plot_img_resized)
+            # 세로로 concat
+
+
+            # (1) 타입(dtype) 맞추기: float → uint8
+            if plot_img.dtype != np.uint8:
+                # 0.0~1.0 범위라면 255 곱해주고, 클립 후 uint8 변환
+                plot_img = np.clip(plot_img * 255, 0, 255).astype(np.uint8)
+
+            # (2) 채널수 맞추기
+            # - 그레이스케일 (ndim==2) → BGR
+            if plot_img.ndim == 2:
+                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_GRAY2BGR)
+            # - RGBA (4채널) → BGR
+            elif plot_img.shape[2] == 4:
+                # 만약 RGB순이면 COLOR_RGBA2BGR, BGR순이면 COLOR_BGRA2BGR
+                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGBA2BGR)
+
+            # (3) 컬러 순서 맞추기 (RGB → BGR)
+            # Matplotlib 이미지는 보통 RGB이므로
+            plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGB2BGR)
+
+            # (4) 크기 맞추기: HeadPoseFrame 과 같은 너비/높이로
+            h, w = HeadPoseFrame.shape[:2]
+            plot_img_resized = cv2.resize(plot_img, (w, h), interpolation=cv2.INTER_AREA)
+
+            self.frame = cv2.vconcat([HeadPoseFrame, plot_img_resized])
+            # 또는 numpy로
+            # combined = np.vstack((HeadPoseFrame, plot_img_resized))
+
+            # # 하나의 창에 띄우기
+            # cv2.namedWindow("HeadPose Combined", cv2.WINDOW_NORMAL)
+            # # 창 크기도 세로가 두 배가 되도록 설정
+            # cv2.resizeWindow("HeadPose Combined", config.WINDOW_WIDTH, config.WINDOW_HEIGHT * 2)
+            # cv2.imshow("HeadPose Combined", self.frame)
 
 
         print("HeadPose compute end, time : ", time.time() - start_time)
         return score
 
+
+class HeadPoseGraph:
+    # Define colors for visualization
+    COLORS = {
+        'GREEN': {'hex': '#56f10d', 'bgr': (86, 241, 13)},
+        'BLUE': {'hex': '#0329fc', 'bgr': (30, 46, 209)},
+        'RED': {'hex': '#f70202', 'bgr': None}
+    }
+
+    def __init__(self):
+        self.CONCENT_THRESHOLD = HEAD_DOWN_THRESHOLD  # Example threshold for EAR
+        self._init_tracking_variables()
+        self._init_plot()
+
+    # def update(self, x, y):
+    #     self.x_data.append(x)
+    #     self.y_data.append(y)
+    #     self.ax.clear()
+    #     self.ax.plot(self.x_data, self.y_data, color='blue')
+    #     plt.draw()
+    def _init_tracking_variables(self):
+        """Initialize variables used for tracking blinks and frame processing."""
+        self.blink_counter = 0
+        self.frame_counter = 0
+        self.frame_number = 0
+        #self.concentration_values = []
+        self.frame_numbers = []
+        self.h_angles = []
+        self.max_frames = 100
+        self.new_w = self.new_h = None
+        # Add default y-axis limits
+        self.default_ymin = -20.0  # Typical minimum EAR value
+        self.default_ymax = +20.0  # Typical maximum EAR value
+
+    def _init_plot(self):
+        """Initialize the matplotlib plot for EAR visualization."""
+        # Set up dark theme plot
+        plt.style.use('dark_background')
+        plt.ioff()
+        self.fig, self.ax = plt.subplots(figsize=(8, 5), dpi=200)
+        self.canvas = FigureCanvas(self.fig)
+        
+        # Configure plot aesthetics
+        self._configure_plot_aesthetics()
+        
+        # Initialize plot data
+        self._init_plot_data()
+
+        self.fig.canvas.draw()
+
+    def _configure_plot_aesthetics(self):
+        """Configure the aesthetic properties of the plot."""
+        # Set background colors
+        self.fig.patch.set_facecolor('#000000')
+        self.ax.set_facecolor('#000000')
+        
+        # Configure axes with default limits initially
+        self.ax.set_ylim(self.default_ymin, self.default_ymax)
+        self.ax.set_xlim(0, self.max_frames)
+        
+        # Set labels and title
+        self.ax.set_xlabel("Frame Number", color='white', fontsize=12)
+        self.ax.set_ylabel("HeadPose", color='white', fontsize=12)
+        self.ax.set_title("HeadPose Degree Score", 
+                         color='white', pad=10, fontsize=18, fontweight='bold')
+        
+        # Configure grid and spines
+        self.ax.grid(True, color='#707b7c', linestyle='--', alpha=0.7)
+        for spine in self.ax.spines.values():
+            spine.set_color('white')
+        
+        # Configure ticks and legend
+        self.ax.tick_params(colors='white', which='both')
+
+    def _init_plot_data(self):
+        self.x_vals = list(range(self.max_frames))
+        self.y_vals = [0] * self.max_frames
+        self.Y_vals = [self.CONCENT_THRESHOLD] * self.max_frames
+        self.H_vals = [0] * self.max_frames
+
+        # Threshold line
+        self.threshold_line, = self.ax.plot(
+            self.x_vals,
+            self.Y_vals,
+            color=self.COLORS['RED']['hex'],
+            label="Blink Threshold",
+            linewidth=2,
+            linestyle='--'
+        )
+
+        self.Hcurve, = self.ax.plot(
+            self.x_vals,
+            self.H_vals,
+            color= "#0329fc",
+            label = "Horizontal Score",
+            linewidth=2
+        )
+
+
+        # Legend 추가
+        self.legend = self.ax.legend(
+            handles=[self.threshold_line, self.Hcurve],
+            loc='upper right',
+            fontsize=10,
+            facecolor='black',
+            edgecolor='white',
+            labelcolor='white',
+            framealpha=0.8,
+            borderpad=1,
+            handlelength=2
+        )
+
+    def _update_plot(self, h_angle):
+        if len(self.frame_numbers) > self.max_frames:
+            self.frame_numbers.pop(0)
+            self.h_angles.pop(0)
+        
+        # Concentration 값을 0~1로 정규화해서 추가
+        # normalized_concentration = value / 100.0
+        # self.concentration_values.append(normalized_concentration)
+        self.frame_numbers.append(self.frame_number)
+        self.frame_number += 1
+
+        self.h_angles.append(h_angle)
+
+        #color = self.COLORS['BLUE']['hex'] if value < self.CONCENT_THRESHOLD else self.COLORS['GREEN']['hex']
+
+        # self.EAR_curve.set_xdata(self.frame_numbers)
+        # self.EAR_curve.set_ydata(self.contentration_value)
+        # self.EAR_curve.set_color(color)
+
+        self.threshold_line.set_xdata(self.frame_numbers)
+        self.threshold_line.set_ydata([self.CONCENT_THRESHOLD] * len(self.frame_numbers))
+
+        # self.ConcentrationCurve.set_xdata(self.frame_numbers)
+        # self.ConcentrationCurve.set_ydata(self.concentration_values)
+        self.Hcurve.set_xdata(self.frame_numbers)
+        self.Hcurve.set_ydata(self.h_angles)
+
+        if len(self.frame_numbers) > 1:
+            x_min = min(self.frame_numbers)
+            x_max = max(self.frame_numbers)
+            if x_min == x_max:
+                x_min -= 0.5
+                x_max += 0.5
+            self.ax.set_xlim(x_min, x_max)
+        else:
+            self.ax.set_xlim(0, self.max_frames)
+
+        if self.legend not in self.ax.get_children():
+            self.legend = self.ax.legend(
+                handles=[self.threshold_line, self.Hcurve],
+                loc='upper right',
+                fontsize=10,
+                facecolor='black',
+                edgecolor='white',
+                labelcolor='white',
+                framealpha=0.8,
+                borderpad=1,
+                handlelength=2
+            )
+
+        self.ax.draw_artist(self.ax.patch)
+        self.ax.draw_artist(self.threshold_line)
+        # self.ax.draw_artist(self.ConcentrationCurve)
+        self.ax.draw_artist(self.Hcurve)
+        self.ax.draw_artist(self.legend)
+        self.fig.canvas.flush_events()
+    
+    def plot_to_image(self):
+        """Convert the matplotlib plot to an OpenCV-compatible image."""
+        self.canvas.draw()
+        
+        buffer = self.canvas.buffer_rgba()
+        img_array = np.asarray(buffer)
+        
+        # Convert RGBA to RGB
+        img_rgb = cv2.cvtColor(img_array, cv2.COLOR_RGBA2RGB)
+        return img_rgb
+
+    def show_graph(self):
+        plot_img = self.plot_to_image()
+        plot_img_resized = cv2.resize(
+            plot_img,
+            (config.WINDOW_WIDTH_CONC, config.WINDOW_HEIGHT_CONC),
+            interpolation=cv2.INTER_AREA
+        )
+        cv2.imshow("Gaze Plot", plot_img_resized)

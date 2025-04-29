@@ -25,8 +25,6 @@ def get_gaze_score(vertical: float, horizontal: float) -> float:
         [15, 30.0],   # 입력 구간
         [1.0,  0.0]     # 출력 구간
     )
-    print("vertical : ", vertical, "horizontal : ", horizontal)
-    print("v_score : ", v_score, "h_score : ", h_score) 
     ### horizontal
     return v_score * h_score  # Adjust weights as needed
 
@@ -42,6 +40,7 @@ class Gaze:
         self.graph = GazeGraph()  # Concentration graph instance
         self.horizontal = 0.0
         self.vertical = 0.0
+        self.frame = None
 
     def close_face_mesh(self):
         #호출필요
@@ -67,8 +66,8 @@ class Gaze:
         if self.display:
             # Display the frame with gaze overlay (if needed)
             
-            cv2.namedWindow("Gaze", cv2.WINDOW_NORMAL)
-            cv2.resizeWindow("Gaze", config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
+            #cv2.namedWindow("Gaze", cv2.WINDOW_NORMAL)
+            #cv2.resizeWindow("Gaze", config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
             cv2.putText(GazeFrame, "Gaze", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255,255,255), 2)
             cv2.putText(GazeFrame,
@@ -77,8 +76,7 @@ class Gaze:
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.7,
                     (0,255,0), 2)
-            cv2.imshow("Gaze", GazeFrame)
-            pass
+            #cv2.imshow("Gaze", GazeFrame)
 
             ## graph
             plot_img = self.graph.plot_to_image()
@@ -87,7 +85,35 @@ class Gaze:
                 (config.WINDOW_WIDTH, config.WINDOW_HEIGHT),
                 interpolation=cv2.INTER_AREA
             )
-            cv2.imshow("Gaze Plot", plot_img_resized)
+            #cv2.imshow("Gaze Plot", plot_img_resized)
+
+            # 3) dtype → uint8
+            if plot_img.dtype != np.uint8:
+                plot_img = np.clip(plot_img * 255, 0, 255).astype(np.uint8)
+
+            # 4) 채널 수 맞추기: gray→BGR, RGBA→BGR
+            if plot_img.ndim == 2:
+                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_GRAY2BGR)
+            elif plot_img.shape[2] == 4:
+                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGBA2BGR)
+
+            # 5) 색순서 맞추기: RGB→BGR
+            plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGB2BGR)
+
+            # 6) 동일한 크기로 리사이즈
+            h, w = GazeFrame.shape[:2]
+            plot_img_resized = cv2.resize(
+                plot_img,
+                (w, h),
+                interpolation=cv2.INTER_AREA
+            )
+
+            # 7) 두 이미지를 세로로 이어붙이기
+            self.frame = cv2.vconcat([GazeFrame, plot_img_resized])
+            # cv2.namedWindow("Gaze Combined", cv2.WINDOW_NORMAL)
+            # # 8) 창 크기 조정 및 출력
+            # cv2.resizeWindow("Gaze Combined",  config.WINDOW_WIDTH, config.WINDOW_HEIGHT * 2)
+            # cv2.imshow("Gaze Combined", self.frame)
         print("Gaze compute end, elapsed time : ", time.time() - start_time)
         if results.multi_face_landmarks:
             # Calculate the gaze score based on the vertical and horizontal angles
