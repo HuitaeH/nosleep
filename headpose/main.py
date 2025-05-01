@@ -52,12 +52,17 @@ class HeadPose:
         self.pitch_down_start_time = None
         self.pitch_down_duration = 0.0 # cumulative time 
         self.PITCH_THRESHOLD = -10.0  # (예: pitch가 -20도 이하로 내려가면 고개 숙임으로 간주)
+        self.is_pitch_up = True
+        self.pitch_up_start_time = None
+        self.pitch_up_duration = 0.0
         
         # scoring 
+        self.score = 1.0
         self.HEAD_DOWN_THRESHOLD = 2.0 # 2초 이상 머리 떨굼 발생 시 스코어에 영향 
         self.DECAY_RATE = 0.1 # 점수 감소 rate
-        self.RECOVERY_RATE = 0.05
+        self.RECOVERY_RATE = 0.05 # 점수 회복 rate
         self.prev_time = time.time()
+        self.HEAD_UP_THRESHOLD = 2.0 # 2초 이상 고개 들고 있을 시 점수 회복 시작 
 
         # plotting
         self.score_history = []
@@ -72,7 +77,6 @@ class HeadPose:
         print("HeadPose compute start")
         start_time = time.time()
         HeadPoseFrame = frame.copy()
-        score = 0.0
 
         faces, _ = self.face_detector.detect(HeadPoseFrame, 0.7)
         pitch, yaw, roll = 0.0, 0.0, 0.0
@@ -117,36 +121,46 @@ class HeadPose:
 
             print(f"Pitch: {pitch:.2f}, Yaw: {yaw:.2f}, Roll: {roll:.2f}")
 
-            # ⭐ pitch를 기반으로 점수 계산
+            # pitch를 기반으로 점수 계산
             max_pitch = 30
             # score = max(0.0, 1.0 - abs(pitch) / max_pitch)
 
-            current_time = time.time()  # 현재 시간(초)
-
+            current_time = time.time()  # 현재 시간(초) 
             if pitch <= self.PITCH_THRESHOLD:
                 if not self.is_pitch_down:
                     # 새로 고개를 숙이기 시작한 경우
                     self.is_pitch_down = True
                     self.pitch_down_start_time = current_time
+                    self.pitch_up_start_time = 0.0
+                    self.is_pitch_up = False
+                    self.pitch_up_duration = 0.0
                 else:
                     # 이미 숙이고 있는 상태 → 지속 시간 계산
                     self.pitch_down_duration = current_time - self.pitch_down_start_time
             else:
                 if self.is_pitch_down:
-                    # 고개를 다시 들었을 때 초기화
+                    # 고개를 다시 들었을 때 
                     self.is_pitch_down = False
+                    self.is_pitch_up = True 
                     self.pitch_down_start_time = None
+                    self.pitch_up_start_time = current_time
                     self.pitch_down_duration = 0.0
-            if self.pitch_down_duration <= self.HEAD_DOWN_THRESHOLD:
-                score = 1.0
+                else: 
+                    # 이미 들고 있는 상태 -> 지속 시간 계산
+                    self.pitch_up_duration = current_time - self.pitch_up_start_time
+
+            if self.pitch_down_duration <= self.HEAD_DOWN_THRESHOLD or self.is_pitch_up == True:
+                recovery_rate = self.RECOVERY_RATE
+                concentration_time = max(0.0, self.pitch_up_duration - self.HEAD_UP_THRESHOLD)
+                self.score = min(1.0, self.score + recovery_rate * concentration_time) 
             else:
                 # 고개 숙인 시간이 길수록 score 감소
                 decay_rate = self.DECAY_RATE  # 초당 0.1씩 감소
-                excess_time = self.pitch_down_duration - self.HEAD_DOWN_THRESHOLD
-                score = max(0.0, 1.0 - decay_rate * excess_time)
+                excess_time = max(0.0, self.pitch_down_duration - self.HEAD_DOWN_THRESHOLD)
+                self.score = max(0.0, self.score - decay_rate * excess_time)
 
             # 매 프레임 score 저장
-            self.score_history.append(score)
+            self.score_history.append(self.score)
 
         if self.display:
             # FPS 표시
@@ -168,10 +182,13 @@ class HeadPose:
             cv2.putText(HeadPoseFrame, f"Down Time: {self.pitch_down_duration:.1f}s",
                         (10, info_y_start + line_spacing * 3),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+            cv2.putText(HeadPoseFrame, f"UP Time: {self.pitch_up_duration:.1f}s",
+                        (10, info_y_start + line_spacing * 4),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
 
             # 현재 score
-            cv2.putText(HeadPoseFrame, f"Score: {score:.2f}",
-                        (10, info_y_start + line_spacing * 4),
+            cv2.putText(HeadPoseFrame, f"Score: {self.score:.2f}",
+                        (10, info_y_start + line_spacing * 5),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1, cv2.LINE_AA)
 
             # 창 설정
@@ -226,9 +243,7 @@ class HeadPose:
 
 
         print("HeadPose compute end, time : ", time.time() - start_time)
-        return score
-
-
+        return self.score
 class HeadPoseGraph:
     # Define colors for visualization
     COLORS = {
