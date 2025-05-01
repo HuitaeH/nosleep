@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import cv2
 from .blink_counter_and_EAR_plot import *
@@ -33,20 +31,17 @@ class Blink:
             self.blink_counter._update_blink_detection(ear)
             now = time.time()
             
-            # 깜빡임이 새로 발생된 경우
             if self.blink_counter.blink_counter > prev_blink_count:
                 if self.last_blink_time is not None:
                     interval = now - self.last_blink_time
                     self.blink_intervals.append((now, interval))
                 self.last_blink_time = now
 
-            # 10초 기준으로 오래된 interval 제거
-            self.blink_intervals = [(t, interval) for t, interval in self.blink_intervals if now - t <= 10.0]
+            self.blink_intervals = [(t, interval) for t, interval in self.blink_intervals if now - t <= 5.0]
 
-            # 최근 10초간 평균 눈 감고 있던 시간 계산
             if self.blink_intervals:
                 avg_interval = np.mean([interval for _, interval in self.blink_intervals])
-                normalized_score = min(avg_interval / 10.0, 1.0)
+                normalized_score = min(avg_interval / 5.0, 1.0)
             else :
                 normalized_score = 0.0
 
@@ -74,5 +69,5 @@ class Blink:
             cv2.imshow("Blink Plot", plot_img_resized)
             pass
         
-        print("normalized_score : ", normalized_score)
-        return normalized_score
+        print("normalized_score : ", 1-normalized_score)
+        return 1-normalized_score

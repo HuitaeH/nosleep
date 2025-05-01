@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+
 import cv2
 import numpy as np
 from headpose.main import HeadPose
@@ -30,12 +30,12 @@ def main():
             print("Failed to capture video frame.")
             break
 
-        # ?„¸ ëª¨ë“ˆ ëª¨ë‘ 0~1 ?Š¤ì½”ì–´ ë°˜í™˜
+        # ?ï¿½ï¿½ ëª¨ë“ˆ ëª¨ë‘ 0~1 ?ï¿½ï¿½ì½”ì–´ ë°˜í™˜
         head_score = hp.compute(frame)
         gaze_score = gz.compute(frame)
         blink_score = bk.compute(frame)
 
-        # ? „ì²? ì§‘ì¤‘?„ ?˜ˆ?‹œ (ê°?ì¤? ?‰ê·?)
+        # ?ï¿½ï¿½ï¿½? ì§‘ì¤‘?ï¿½ï¿½ ?ï¿½ï¿½?ï¿½ï¿½ (ï¿½?ï¿½? ?ï¿½ï¿½ï¿½?)
         overall = (head_score*0.4 + gaze_score*0.4 + blink_score*0.2)
         graph._update_plot(overall)
         print(f"H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}, overall: {overall:.2f}")
@@ -123,7 +123,7 @@ class ConcentrationGraph:
         self.x_vals = list(range(self.max_frames))
         self.y_vals = [0] * self.max_frames
         self.Y_vals = [self.CONCENT_THRESHOLD] * self.max_frames
-        self.C_vals = [100] * self.max_frames  # â­ï¸ ì´ˆê¸° concentration 100?œ¼ë¡? ?„¤? •
+        self.C_vals = [100] * self.max_frames  # â­ï¸ ì´ˆê¸° concentration 100?ï¿½ï¿½ï¿½? ?ï¿½ï¿½?ï¿½ï¿½
 
         # Threshold line
         self.threshold_line, = self.ax.plot(
@@ -135,7 +135,7 @@ class ConcentrationGraph:
             linestyle='--'
         )
 
-        # Concentration curve â­ï¸ ì¶”ê??
+        # Concentration curve â­ï¸ ì¶”ï¿½??
         self.ConcentrationCurve, = self.ax.plot(
             self.x_vals,
             self.C_vals,
@@ -144,7 +144,7 @@ class ConcentrationGraph:
             linewidth=2
         )
 
-        # Legend ì¶”ê??
+        # Legend ì¶”ï¿½??
         self.legend = self.ax.legend(
             handles=[self.threshold_line, self.ConcentrationCurve],
             loc='upper right',
@@ -162,7 +162,7 @@ class ConcentrationGraph:
             self.frame_numbers.pop(0)
             self.concentration_values.pop(0)
 
-        # Concentration ê°’ì„ 0~1ë¡? ? •ê·œí™”?•´?„œ ì¶”ê??
+        # Concentration ê°’ì„ 0~1ï¿½? ?ï¿½ï¿½ê·œí™”?ï¿½ï¿½?ï¿½ï¿½ ì¶”ï¿½??
         normalized_concentration = value / 100.0
         self.concentration_values.append(normalized_concentration)
         self.frame_numbers.append(self.frame_number)
