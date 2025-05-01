@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from .helpers import relative, relativeT
+import math
 
 
 def gaze(frame, points):
@@ -97,3 +98,24 @@ def gaze(frame, points):
         p1 = (int(left_pupil[0]), int(left_pupil[1]))
         p2 = (int(gaze[0]), int(gaze[1]))
         cv2.line(frame, p1, p2, (0, 0, 255), 2)
+
+    ##gpt gen
+
+        # frame.shape로부터 미리 구해둔 값들
+        focal_length = frame.shape[1]          # fx; 보통 화면 너비 픽셀 수 혹은 카메라 초점거리(픽셀)
+        cx, cy = frame.shape[1] / 2, frame.shape[0] / 2
+
+        # p2가 이미 계산된 시선이 닿은 2D 좌표라 하면
+        gx, gy = gaze[0], gaze[1]
+
+        # 중앙 대비 픽셀 오프셋
+        dx = gx - cx   # 오른쪽 양수
+        dy = gy - cy   # 아래쪽 양수
+
+        # tan(θ) = opposite / adjacent → θ = atan2(opposite, adjacent)
+        h_angle = math.degrees(math.atan2(dx, focal_length))   # 수평 편차 각도
+        v_angle = math.degrees(math.atan2(dy, focal_length))   # 수직 편차 각도
+
+        # 화면에 표시
+        return v_angle, h_angle
+    return 0.0, 0.0  # Default return if transformation fails
