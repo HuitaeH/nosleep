@@ -53,7 +53,7 @@ class HeadPose:
         self.pitch_down_duration = 0.0 # cumulative time 
         self.PITCH_THRESHOLD = -10.0  # (예: pitch가 -20도 이하로 내려가면 고개 숙임으로 간주)
         self.is_pitch_up = True
-        self.pitch_up_start_time = None
+        self.pitch_up_start_time = 0.0
         self.pitch_up_duration = 0.0
         
         # scoring 
