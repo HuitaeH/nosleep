@@ -124,7 +124,7 @@ class HeadPose:
             # pitch를 기반으로 점수 계산
             max_pitch = 30
             # score = max(0.0, 1.0 - abs(pitch) / max_pitch)
-
+            start_time1 = time.time()
             current_time = time.time()  # 현재 시간(초) 
             if pitch <= self.PITCH_THRESHOLD:
                 if not self.is_pitch_down:
@@ -134,9 +134,11 @@ class HeadPose:
                     self.pitch_up_start_time = 0.0
                     self.is_pitch_up = False
                     self.pitch_up_duration = 0.0
+                    print("고개 숙임: ", time.time()-start_time1)
                 else:
                     # 이미 숙이고 있는 상태 → 지속 시간 계산
                     self.pitch_down_duration = current_time - self.pitch_down_start_time
+                    print("숙이고 있음: ", time.time()-start_time1)
             else:
                 if self.is_pitch_down:
                     # 고개를 다시 들었을 때 
@@ -145,9 +147,11 @@ class HeadPose:
                     self.pitch_down_start_time = None
                     self.pitch_up_start_time = current_time
                     self.pitch_down_duration = 0.0
+                    print("고개 올림: ", time.time()-start_time1)
                 else: 
                     # 이미 들고 있는 상태 -> 지속 시간 계산
                     self.pitch_up_duration = current_time - self.pitch_up_start_time
+                    print("올리고 있음: ", time.time()-start_time1)
 
             if self.pitch_down_duration <= self.HEAD_DOWN_THRESHOLD or self.is_pitch_up == True:
                 recovery_rate = self.RECOVERY_RATE
