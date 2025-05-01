@@ -43,7 +43,9 @@ class Gaze:
         self.frame = None
 
     def close_face_mesh(self):
+
         #호출필요
+
         self.face_mesh.close()
 
     def compute(self, frame: np.ndarray) -> float:
@@ -200,6 +202,7 @@ class GazeGraph:
         self.x_vals = list(range(self.max_frames))
         self.y_vals = [0] * self.max_frames
         self.Y_vals = [self.CONCENT_THRESHOLD] * self.max_frames
+
         self.C_vals = [100] * self.max_frames  # ⭐️ 초기 concentration 100으로 설정
         self.V_vals = [0] * self.max_frames
         self.H_vals = [0] * self.max_frames
@@ -214,6 +217,7 @@ class GazeGraph:
             linestyle='--'
         )
 
+
         # Concentration curve ⭐️ 추�??
         self.ConcentrationCurve, = self.ax.plot(
             self.x_vals,
@@ -222,6 +226,8 @@ class GazeGraph:
             label="Concentration Score",
             linewidth=2
         )
+
+
 
         self.Vcurve, = self.ax.plot(
             self.x_vals,
@@ -241,6 +247,7 @@ class GazeGraph:
 
 
         # Legend 추가
+
         self.legend = self.ax.legend(
             handles=[self.threshold_line, self.ConcentrationCurve, self.Vcurve, self.Hcurve],
             loc='upper right',
@@ -256,12 +263,14 @@ class GazeGraph:
     def _update_plot(self, v_angle, h_angle):
         if len(self.frame_numbers) > self.max_frames:
             self.frame_numbers.pop(0)
+
             self.v_angles.pop(0)
             self.h_angles.pop(0)
         
         # Concentration 값을 0~1로 정규화해서 추가
         # normalized_concentration = value / 100.0
         # self.concentration_values.append(normalized_concentration)
+
         self.frame_numbers.append(self.frame_number)
         self.frame_number += 1
 

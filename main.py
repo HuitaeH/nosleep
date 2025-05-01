@@ -1,4 +1,6 @@
+
 # -*- coding: utf-8 -*-
+
 import cv2
 import numpy as np
 from headpose.main import HeadPose
@@ -35,6 +37,7 @@ def main():
         gaze_score = gz.compute(frame)
         blink_score = bk.compute(frame)
 
+
         # 전체 집중도 예시 (가중 평균)
         overall = (head_score*0.3 + gaze_score*0.3 + blink_score*0.4)
         graph._update_plot(overall, gaze_score, blink_score, head_score)
@@ -54,6 +57,7 @@ def main():
                             config.WINDOW_HEIGHT * 2)
             cv2.imshow("All Combined", all_combined)
             
+
         graph.show_graph()
         if cv2.waitKey(1) & 0xFF == 27:
             break
@@ -120,10 +124,12 @@ class ConcentrationGraph:
 
         self.fig.canvas.draw()
 
+
     def _get_ax(self, title):
         titles = list(self.scores.keys())
         idx = titles.index(title)
         return self.axs.flat[idx]
+
 
     def plot_to_image(self):
         self.canvas.draw()
