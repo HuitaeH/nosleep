@@ -9,8 +9,8 @@ import config
 
 
 DISPLAY_HEADPOSE = True
-DISPLAY_GAZE = True
-DISPLAY_BLINK = True
+DISPLAY_GAZE = False
+DISPLAY_BLINK = False
 
 
 def main():
