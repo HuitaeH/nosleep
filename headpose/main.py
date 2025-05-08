@@ -145,15 +145,15 @@ class HeadPose:
                 # roll = np.degrees(roll)
                 
                 # print(f"Pitch: {pitch:.2f}, Yaw: {yaw:.2f}, Roll: {roll:.2f}")
-                yaw = np.arctan2(-rotation_matrix[2, 0], sy)
-                roll = 0
+                # yaw = np.arctan2(-rotation_matrix[2, 0], sy)
+                # roll = 0
 
-            pitch = np.degrees(pitch)
-            yaw = np.degrees(yaw)
-            roll = np.degrees(roll)
-            self.graph._update_plot(pitch)
+                pitch = np.degrees(pitch)
+                # yaw = np.degrees(yaw)
+                # roll = np.degrees(roll)
+                self.graph._update_plot(pitch)
 
-            print(f"Pitch: {pitch:.2f}, Yaw: {yaw:.2f}, Roll: {roll:.2f}")
+                # print(f"Pitch: {pitch:.2f}, Yaw: {yaw:.2f}, Roll: {roll:.2f}")
 
                 # pitch를 기반으로 점수 계산
                
