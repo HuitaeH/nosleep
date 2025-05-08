@@ -9,6 +9,7 @@ fonttools==4.57.0
 humanfriendly==10.0
 jax==0.6.0
 jaxlib==0.6.0
+joblib==1.5.0
 kiwisolver==1.4.8
 matplotlib==3.10.1
 mediapipe==0.10.21
@@ -19,14 +20,19 @@ onnxruntime==1.21.1
 opencv-contrib-python==4.11.0.86
 opt_einsum==3.4.0
 packaging==25.0
+pandas==2.2.3
 pillow==11.2.1
 protobuf==4.25.7
 pycparser==2.22
 pyparsing==3.2.3
 pyreadline3==3.5.4
 python-dateutil==2.9.0.post0
+pytz==2025.2
+scikit-learn==1.6.1
 scipy==1.15.2
 sentencepiece==0.2.0
 six==1.17.0
 sounddevice==0.5.1
 sympy==1.13.3
+threadpoolctl==3.6.0
+tzdata==2025.2
