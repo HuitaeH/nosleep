@@ -59,8 +59,8 @@ class HeadPose:
         # scoring 
         self.score = 1.0
         self.HEAD_DOWN_THRESHOLD = 2.0 # 2초 이상 머리 떨굼 발생 시 스코어에 영향 
-        self.DECAY_RATE = 0.1 # 점수 감소 rate
-        self.RECOVERY_RATE = 0.05 # 점수 회복 rate
+        self.DECAY_RATE = 0.01 # 점수 감소 rate
+        self.RECOVERY_RATE = 0.01 # 점수 회복 rate
         self.prev_time = time.time()
         self.HEAD_UP_THRESHOLD = 2.0 # 2초 이상 고개 들고 있을 시 점수 회복 시작 
 
