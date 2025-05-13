@@ -59,9 +59,15 @@ def main():
             
 
         graph.show_graph()
-        if cv2.waitKey(1) & 0xFF == 27:
+        key = cv2.waitKey(1) & 0xFF
+        if key == 27 :
             break
-
+        elif key == ord('h') : # headpose
+            hp.set_reference()
+            print("Headpose reference set.")
+        elif key == ord('g') : # gaze
+            gz.set_reference()
+            print("Gaze reference set.")
     cap.release()
     cv2.destroyAllWindows()
     gz.close_face_mesh()

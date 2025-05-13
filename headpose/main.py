@@ -68,9 +68,16 @@ class HeadPose:
         self.score_history = []
         self.graph = HeadPoseGraph()
         self.frame = None
+
+        # reference set
+        self.reference_angle = None
         
         pass
 
+    def set_reference(self):
+        if hasattr(self, 'latest_angle'):
+            self.reference_angle = self.latest_angle.copy()
+            print("Reference angle set: ", self.reference_angle)
     
     def compute(self, frame: np.ndarray) -> float:
 
@@ -121,15 +128,22 @@ class HeadPose:
 
             print(f"Pitch: {pitch:.2f}, Yaw: {yaw:.2f}, Roll: {roll:.2f}")
 
+            self.latest_angle = np.array([pitch, yaw, roll])
+
+            if self.reference_angle is not None :
+                diff = np.linalg.norm(np.array(self.latest_angle) - np.array(self.reference_angle))
+                print(f"diff from reference: {diff:.2f}")
+
+
             # pitch를 기반으로 점수 계산
             max_pitch = 30
             # score = max(0.0, 1.0 - abs(pitch) / max_pitch)
             start_time1 = time.time()
             current_time = time.time()  # 현재 시간(초) 
-            if pitch <= self.PITCH_THRESHOLD:
-                if not self.is_pitch_down:
+            if diff > self.DIFF_THRESHOLD:
+                if not self.is_out_of_reference:
                     # 새로 고개를 숙이기 시작한 경우
-                    self.is_pitch_down = True
+                    self.is_out_of_reference = True
                     self.pitch_down_start_time = current_time
                     self.pitch_up_start_time = 0.0
                     self.is_pitch_up = False

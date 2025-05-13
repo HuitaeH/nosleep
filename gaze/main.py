@@ -42,6 +42,25 @@ class Gaze:
         self.vertical = 0.0
         self.frame = None
 
+        self.reference_vertical = None
+        self.reference_horizontal = None
+
+        self.score = 1.0
+        self.score_history = []
+
+        self.is_out_of_reference = False
+        self.out_start_time = None
+        self.out_duration = 0.0
+
+        self.DIFF_THRESHOLD = 10.0
+        self.DECAY_RATE = 0.05
+        self.RECOVERY_RATE = 0.01
+
+    def set_reference(self):
+        self.reference_vertical = self.vertical
+        self.reference_horizontal = self.horizontal
+        print("Reference set: V:", self.reference_vertical, "H:", self.reference_horizontal)
+
     def close_face_mesh(self):
 
         #호출필요
@@ -64,7 +83,36 @@ class Gaze:
             self.vertical = vertical + config.VERTICAL
             self.horizontal = horizontal + config.HORIZONTAL
             self.graph._update_plot(self.vertical, self.horizontal)  # Update the graph with the new angles
-        
+
+            current_time = time.time()
+
+            if self.reference_vertical is not None and self.reference_horizontal is not None:
+                diff = np.linalg.norm([self.vertical - self.reference_vertical,
+                                        self.horizontal - self.reference_horizontal])
+                self.score = max(0.0, 1.0-diff / 30.0)
+                print(f"Gaze diff : {diff:.2f}, Score: {self.score:.2f}")
+
+                if diff > self.DIFF_THRESHOLD:
+                    if not self.is_out_of_reference:
+                        self.is_out_of_reference = True
+                        self.out_start_time = current_time
+                else:
+                    self.out_duration = current_time - self.out_start_time
+                    decay = self.DECAY_RATE * self.out_duration
+                    self.score = max(0.0, self.score - decay)
+                    print(f"Out of reference duration: {self.out_duration:.2f}s, Decay: {decay:.2f}, Score: {self.score:.2f}")
+            else :
+                if self.is_out_of_reference:
+                    print("come back to reference")
+                self.is_out_of_reference = False
+                self.out_start_time = None
+                self.out_duration = 0.0
+                self.score = min(1.0, self.score + self.RECOVERY_RATE)
+        else:
+            self.score = 1.0
+
+        self.score_history.append(self.score)
+    
         if self.display:
             # Display the frame with gaze overlay (if needed)
             
@@ -122,7 +170,7 @@ class Gaze:
             # Here we can use a simple average of the angles as a score, or any other logic
             
             return get_gaze_score(vertical, horizontal)
-        return 0.0
+        return self.score
     
 class GazeGraph:
     # Define colors for visualization
