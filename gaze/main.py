@@ -59,6 +59,9 @@ class Gaze:
         self.gaze_horizontal_sum = 0.0
         self.gaze_vertical_sum = 0.0
 
+        ##for error handling
+        self.prev_score = 0.0
+
     def close_face_mesh(self):
 
         #호출필요
@@ -163,7 +166,8 @@ class Gaze:
             ]
 
             # 평균 집중도 계산
-            concentration_score = sum(scores) / len(scores) if scores else 0.0
+            concentration_score = sum(scores) / len(scores) if scores else self.prev_score
+            self.prev_score = concentration_score
             
             return concentration_score
         return 0.0
