@@ -35,20 +35,18 @@ class Blink:
             self.blink_counter._update_blink_detection(ear)
             now = time.time()
             
-            # �������� ���� �߻��� ���
             if self.blink_counter.blink_counter > prev_blink_count:
                 if self.last_blink_time is not None:
                     interval = now - self.last_blink_time
                     self.blink_intervals.append((now, interval))
                 self.last_blink_time = now
 
-            # 10�� �������� ������ interval ����
-            self.blink_intervals = [(t, interval) for t, interval in self.blink_intervals if now - t <= 10.0]
+            self.blink_intervals = [(t, interval) for t, interval in self.blink_intervals if now - t <= 5.0]
 
-            # �ֱ� 10�ʰ� ��� �� ���� �ִ� �ð� ���
             if self.blink_intervals:
                 avg_interval = np.mean([interval for _, interval in self.blink_intervals])
-                normalized_score = min(avg_interval / 10.0, 1.0)
+                normalized_score = min(avg_interval / 5.0, 1.0)
+
             else :
                 normalized_score = 0.0
 
@@ -73,6 +71,7 @@ class Blink:
                 (config.WINDOW_WIDTH, config.WINDOW_HEIGHT),
                 interpolation=cv2.INTER_AREA
             )
+
             #cv2.imshow("Blink Plot", plot_img_resized)
             # (dtype) float → uint8
             if plot_img.dtype != np.uint8:
@@ -104,5 +103,6 @@ class Blink:
             # cv2.resizeWindow("Blink Combined",  config.WINDOW_WIDTH, config.WINDOW_HEIGHT * 2)
             # cv2.imshow("Blink Combined", self.frame)
         print("Blink compute end, time : ", time.time() - start_time)
-        print("normalized_score : ", normalized_score)
-        return normalized_score
+
+        return 1-normalized_score
+
