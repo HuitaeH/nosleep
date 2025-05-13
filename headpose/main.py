@@ -54,13 +54,14 @@ class HeadPose:
         self.PITCH_THRESHOLD = -10.0  # (예: pitch가 -20도 이하로 내려가면 고개 숙임으로 간주)
         self.is_pitch_up = True
         self.pitch_up_start_time = 0.0
+        self.pitch_up_start_time = 0.0
         self.pitch_up_duration = 0.0
         
         # scoring 
         self.score = 1.0
         self.HEAD_DOWN_THRESHOLD = 2.0 # 2초 이상 머리 떨굼 발생 시 스코어에 영향 
-        self.DECAY_RATE = 0.1 # 점수 감소 rate
-        self.RECOVERY_RATE = 0.05 # 점수 회복 rate
+        self.DECAY_RATE = 0.01 # 점수 감소 rate
+        self.RECOVERY_RATE = 0.01 # 점수 회복 rate
         self.prev_time = time.time()
         self.HEAD_UP_THRESHOLD = 2.0 # 2초 이상 고개 들고 있을 시 점수 회복 시작 
 
@@ -69,6 +70,12 @@ class HeadPose:
         self.graph = HeadPoseGraph()
         self.frame = None
         
+
+        # 250508 button pressed
+        self.button = True
+        self.num_frame = 0
+        self.FRAME_THRESHOLD = 50
+        self.default_pitch = 0.0
         pass
 
     
@@ -79,7 +86,10 @@ class HeadPose:
         HeadPoseFrame = frame.copy()
 
         faces, _ = self.face_detector.detect(HeadPoseFrame, 0.7)
-        pitch, yaw, roll = 0.0, 0.0, 0.0
+        pitch = 0.0
+        default_pitch = self.default_pitch
+        
+        # pitch, yaw, roll = 0.0, 0.0, 0.0
         if len(faces) > 0:
             self.tm.start()
 
@@ -107,64 +117,89 @@ class HeadPose:
 
             if not singular:
                 pitch = np.arctan2(rotation_matrix[2, 1], rotation_matrix[2, 2])
-                yaw = np.arctan2(-rotation_matrix[2, 0], sy)
-                roll = np.arctan2(rotation_matrix[1, 0], rotation_matrix[0, 0])
+                # yaw = np.arctan2(-rotation_matrix[2, 0], sy)
+                # roll = np.arctan2(rotation_matrix[1, 0], rotation_matrix[0, 0])
             else:
                 pitch = np.arctan2(-rotation_matrix[1, 2], rotation_matrix[1, 1])
-                yaw = np.arctan2(-rotation_matrix[2, 0], sy)
-                roll = 0
+                # yaw = np.arctan2(-rotation_matrix[2, 0], sy)
+                # roll = 0
+            
+            self.num_frame += 1
+            if self.button == True and self.num_frame <= self.FRAME_THRESHOLD:
+                pitch = np.degrees(pitch)
+                default_pitch += pitch 
+                self.default_pitch = default_pitch
+                print(f"Frame Number: {self.num_frame}")
+                print(f"Default Pitch(cumulative): {default_pitch:.2f}")
+                print(f"Pitch(measuring default): {pitch:.2f}")
 
-            pitch = np.degrees(pitch)
-            yaw = np.degrees(yaw)
-            roll = np.degrees(roll)
-            self.graph._update_plot(pitch)
+                if self.num_frame == self.FRAME_THRESHOLD:
+                    default_pitch = default_pitch/self.num_frame
+                    self.default_pitch = default_pitch
+                    self.button = False
+                    print(f"Frame Number: {self.num_frame}")
+                    print(f"Default Pitch(Final): {default_pitch:.2f}")
+                    print(f"Pitch(mesuring default): {pitch:.2f}")
 
-            print(f"Pitch: {pitch:.2f}, Yaw: {yaw:.2f}, Roll: {roll:.2f}")
+            
+                # yaw = np.degrees(yaw)
+                # roll = np.degrees(roll)
+                
+                # print(f"Pitch: {pitch:.2f}, Yaw: {yaw:.2f}, Roll: {roll:.2f}")
+                # yaw = np.arctan2(-rotation_matrix[2, 0], sy)
+                # roll = 0
 
-            # pitch를 기반으로 점수 계산
-            max_pitch = 30
-            # score = max(0.0, 1.0 - abs(pitch) / max_pitch)
-            start_time1 = time.time()
-            current_time = time.time()  # 현재 시간(초) 
-            if pitch <= self.PITCH_THRESHOLD:
-                if not self.is_pitch_down:
-                    # 새로 고개를 숙이기 시작한 경우
-                    self.is_pitch_down = True
-                    self.pitch_down_start_time = current_time
-                    self.pitch_up_start_time = 0.0
-                    self.is_pitch_up = False
-                    self.pitch_up_duration = 0.0
-                    print("고개 숙임: ", time.time()-start_time1)
+                pitch = np.degrees(pitch)
+                # yaw = np.degrees(yaw)
+                # roll = np.degrees(roll)
+                self.graph._update_plot(pitch)
+
+                # print(f"Pitch: {pitch:.2f}, Yaw: {yaw:.2f}, Roll: {roll:.2f}")
+
+                # pitch를 기반으로 점수 계산
+               
+                # score = max(0.0, 1.0 - abs(pitch) / max_pitch)
+            else:  
+                max_pitch = 30
+                print(f"Default Pitch(fixed): {default_pitch:.2f}")
+                pitch = np.degrees(pitch) - default_pitch
+                print(f"Pitch: {pitch:.2f}")
+                current_time = time.time()  # 현재 시간(초) 
+                if pitch <= self.PITCH_THRESHOLD:
+                    if not self.is_pitch_down:
+                        # 새로 고개를 숙이기 시작한 경우
+                        self.is_pitch_down = True
+                        self.pitch_down_start_time = current_time
+                        self.pitch_up_start_time = 0.0
+                        self.is_pitch_up = False
+                        self.pitch_up_duration = 0.0
+                    else:
+                        # 이미 숙이고 있는 상태 → 지속 시간 계산
+                        self.pitch_down_duration = current_time - self.pitch_down_start_time
                 else:
-                    # 이미 숙이고 있는 상태 → 지속 시간 계산
-                    self.pitch_down_duration = current_time - self.pitch_down_start_time
-                    print("숙이고 있음: ", time.time()-start_time1)
-            else:
-                if self.is_pitch_down:
-                    # 고개를 다시 들었을 때 
-                    self.is_pitch_down = False
-                    self.is_pitch_up = True 
-                    self.pitch_down_start_time = None
-                    self.pitch_up_start_time = current_time
-                    self.pitch_down_duration = 0.0
-                    print("고개 올림: ", time.time()-start_time1)
-                else: 
-                    # 이미 들고 있는 상태 -> 지속 시간 계산
-                    self.pitch_up_duration = current_time - self.pitch_up_start_time
-                    print("올리고 있음: ", time.time()-start_time1)
+                    if self.is_pitch_down:
+                        # 고개를 다시 들었을 때 
+                        self.is_pitch_down = False
+                        self.is_pitch_up = True 
+                        self.pitch_down_start_time = None
+                        self.pitch_up_start_time = current_time
+                        self.pitch_down_duration = 0.0
+                    else: 
+                        # 이미 들고 있는 상태 -> 지속 시간 계산
+                        self.pitch_up_duration = current_time - self.pitch_up_start_time
 
-            if self.pitch_down_duration <= self.HEAD_DOWN_THRESHOLD or self.is_pitch_up == True:
-                recovery_rate = self.RECOVERY_RATE
-                concentration_time = max(0.0, self.pitch_up_duration - self.HEAD_UP_THRESHOLD)
-                self.score = min(1.0, self.score + recovery_rate * concentration_time) 
-            else:
-                # 고개 숙인 시간이 길수록 score 감소
-                decay_rate = self.DECAY_RATE  # 초당 0.1씩 감소
-                excess_time = max(0.0, self.pitch_down_duration - self.HEAD_DOWN_THRESHOLD)
-                self.score = max(0.0, self.score - decay_rate * excess_time)
+                if self.pitch_down_duration <= self.HEAD_DOWN_THRESHOLD or self.is_pitch_up == True:
+                    recovery_rate = self.RECOVERY_RATE
+                    concentration_time = max(0.0, self.pitch_up_duration - self.HEAD_UP_THRESHOLD)
+                    self.score = min(1.0, self.score + recovery_rate * concentration_time) 
+                else:
+                    # 고개 숙인 시간이 길수록 score 감소
+                    decay_rate = self.DECAY_RATE  # 초당 0.1씩 감소
+                    excess_time = max(0.0, self.pitch_down_duration - self.HEAD_DOWN_THRESHOLD)
+                    self.score = max(0.0, self.score - decay_rate * excess_time)
 
-            # 매 프레임 score 저장
-            self.score_history.append(self.score)
+                # 매 프레임 score 저장
+                self.score_history.append(self.score)
 
         if self.display:
             # FPS 표시
@@ -178,10 +213,10 @@ class HeadPose:
 
             cv2.putText(HeadPoseFrame, f"Pitch: {pitch:.1f}", (10, info_y_start),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-            cv2.putText(HeadPoseFrame, f"Yaw: {yaw:.1f}", (10, info_y_start + line_spacing),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-            cv2.putText(HeadPoseFrame, f"Roll: {roll:.1f}", (10, info_y_start + line_spacing * 2),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            # cv2.putText(HeadPoseFrame, f"Yaw: {yaw:.1f}", (10, info_y_start + line_spacing),
+            #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            # cv2.putText(HeadPoseFrame, f"Roll: {roll:.1f}", (10, info_y_start + line_spacing * 2),
+            #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
             # pitch down 지속 시간
             cv2.putText(HeadPoseFrame, f"Down Time: {self.pitch_down_duration:.1f}s",
                         (10, info_y_start + line_spacing * 3),

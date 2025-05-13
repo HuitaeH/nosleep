@@ -12,21 +12,29 @@ import mediapipe as mp
 mp_face_mesh = mp.solutions.face_mesh  # initialize the face mesh model
 
 ##score 가중치
-def get_gaze_score(vertical: float, horizontal: float) -> float:
+def get_gaze_score(vertical: float, horizontal: float, v_off, h_off) -> float:
     """
     Calculate the gaze score based on vertical and horizontal angles.
     This is a placeholder function. You can implement your own logic here.
     """
     # Example: simple average of vertical and horizontal angles as a score
     ## Vertical
-    v_score = np.interp(vertical, [-5.0, 0.0],[1.0, 0.0])
-    h_score = np.interp(
-        np.abs(horizontal),
-        [15, 30.0],   # 입력 구간
-        [1.0,  0.0]     # 출력 구간
-    )
+    vertical = vertical - v_off
+    horizontal = horizontal - h_off
+    v_score = get_score(vertical, 5, 10)
+    h_score = get_score(horizontal, 15, 20)
+
     ### horizontal
     return v_score * h_score  # Adjust weights as needed
+
+def get_score(value: float, threshold: float, max_range: float) -> float:
+    abs_val = abs(value)
+    if abs_val <= threshold:
+        return 1.0
+    elif abs_val >= max_range:
+        return 0.0
+    else:
+        return np.interp(abs_val, [threshold, max_range], [1.0, 0.0])
 
 class Gaze:
     def __init__(self, display: bool = False):
@@ -41,6 +49,18 @@ class Gaze:
         self.horizontal = 0.0
         self.vertical = 0.0
         self.frame = None
+
+        ## for calibration
+        self.button = True
+        self.num_frame = 0
+        self.FRAME_THRESHOLD = 50
+        self.gaze_horizontal_off = 0.0
+        self.gaze_vertical_off = 0.0
+        self.gaze_horizontal_sum = 0.0
+        self.gaze_vertical_sum = 0.0
+
+        ##for error handling
+        self.prev_score = 0.0
 
     def close_face_mesh(self):
 
@@ -61,9 +81,22 @@ class Gaze:
 
         if results.multi_face_landmarks:
             vertical, horizontal = gaze_util.gaze(GazeFrame, results.multi_face_landmarks[0])  # gaze estimation
-            self.vertical = vertical + config.VERTICAL
-            self.horizontal = horizontal + config.HORIZONTAL
+            self.vertical = vertical
+            self.horizontal = horizontal
             self.graph._update_plot(self.vertical, self.horizontal)  # Update the graph with the new angles
+
+
+            # calibration
+            self.num_frame += 1
+            if self.button:
+                self.gaze_horizontal_sum += horizontal
+                self.gaze_vertical_sum += vertical
+
+                if self.num_frame == self.FRAME_THRESHOLD:
+                    self.gaze_horizontal_off = self.gaze_horizontal_sum / self.FRAME_THRESHOLD
+                    self.gaze_vertical_off = self.gaze_vertical_sum / self.FRAME_THRESHOLD
+                    self.button = False
+
         
         if self.display:
             # Display the frame with gaze overlay (if needed)
@@ -78,6 +111,9 @@ class Gaze:
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.7,
                     (0,255,0), 2)
+            
+            cv2.putText(GazeFrame, f"offset : h: {self.gaze_horizontal_off:.1f} v: {self.gaze_vertical_off:.1f}", (10, 60),
+                               cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
             #cv2.imshow("Gaze", GazeFrame)
 
             ## graph
@@ -121,13 +157,17 @@ class Gaze:
             # Calculate the gaze score based on the vertical and horizontal angles
             # Here we can use a simple average of the angles as a score, or any other logic
             window_size = 50
-            recent_v = self.graph.v_angles[-window_size:]  # 최대 50개까지
+            recent_v = self.graph.v_angles[-window_size:]
             recent_h = self.graph.h_angles[-window_size:]
 
-            avg_v = sum(recent_v) / len(recent_v)
-            avg_h = sum(recent_h) / len(recent_h)
+            scores = [
+                get_gaze_score(v, h, self.gaze_vertical_off, self.gaze_horizontal_off)
+                for v, h in zip(recent_v, recent_h)
+            ]
 
-            concentration_score = get_gaze_score(avg_v, avg_h)
+            # 평균 집중도 계산
+            concentration_score = sum(scores) / len(scores) if scores else self.prev_score
+            self.prev_score = concentration_score
             
             return concentration_score
         return 0.0
