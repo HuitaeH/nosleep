@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import config
 
-DISPLAY = False
+DISPLAY = True
 
 def main():
     print("Initializing modules...")
