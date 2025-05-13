@@ -10,19 +10,19 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import config
 
-DISPLAY = True
-DISPLAY_HEADPOSE = True
-DISPLAY_GAZE = True
-DISPLAY_BLINK = True
+DISPLAY = False
 
 def main():
     print("Initializing modules...")
     cap = cv2.VideoCapture(0)
+    # resolution settings
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    hp = HeadPose(display=DISPLAY_HEADPOSE, frame_width=frame_width, frame_height=frame_height)
-    gz = Gaze(display=DISPLAY_GAZE)
-    bk = Blink(display=DISPLAY_BLINK)
+    hp = HeadPose(display=DISPLAY, frame_width=frame_width, frame_height=frame_height)
+    gz = Gaze(display=DISPLAY)
+    bk = Blink(display=DISPLAY)
     graph = ConcentrationGraph()
     print("Modules initialized.")
 

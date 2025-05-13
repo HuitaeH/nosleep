@@ -168,9 +168,17 @@ class Gaze:
         if results.multi_face_landmarks:
             # Calculate the gaze score based on the vertical and horizontal angles
             # Here we can use a simple average of the angles as a score, or any other logic
+            window_size = 50
+            recent_v = self.graph.v_angles[-window_size:]  # 최대 50개까지
+            recent_h = self.graph.h_angles[-window_size:]
+
+            avg_v = sum(recent_v) / len(recent_v)
+            avg_h = sum(recent_h) / len(recent_h)
+
+            concentration_score = get_gaze_score(avg_v, avg_h)
             
-            return get_gaze_score(vertical, horizontal)
-        return self.score
+            return concentration_score
+        return 0.0
     
 class GazeGraph:
     # Define colors for visualization
