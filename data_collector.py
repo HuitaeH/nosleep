@@ -45,7 +45,7 @@ def main():
 
     # 2. 캘리브레이션 시작
     frame_id = 0
-    print("Start calibration. prees 'c' to start.")
+    print("Start calibration. press 'c' to start.")
     while True:
         if keyboard.is_pressed('c'):
             print("Calibration started.")
