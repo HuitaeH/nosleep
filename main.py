@@ -9,8 +9,11 @@ from blink.main import Blink
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import config
+import keyboard  # pip install keyboard
 
-DISPLAY = True
+DISPLAY = True              # camera display
+DISPLAY_GRAPH = False       # graph display
+DISPLAY_OVERALL = False     # overall concentration display
 
 def main():
     print("Initializing modules...")
@@ -20,11 +23,60 @@ def main():
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    hp = HeadPose(display=DISPLAY, frame_width=frame_width, frame_height=frame_height)
-    gz = Gaze(display=DISPLAY)
-    bk = Blink(display=DISPLAY)
+    hp = HeadPose(display=DISPLAY, display_graph = DISPLAY_GRAPH, frame_width=640, frame_height=480)
+    gz = Gaze(display=DISPLAY, display_graph = DISPLAY_GRAPH)
+    bk = Blink(display=DISPLAY, display_graph = DISPLAY_GRAPH)
     graph = ConcentrationGraph()
     print("Modules initialized.")
+
+        # 2. 캘리브레이션 시작
+    frame_id = 0
+    print("Start calibration. prees 'c' to start.")
+    while True:
+        if keyboard.is_pressed('c'):
+            print("Calibration started.")
+            break
+    while True:
+        if (not hp.button and not gz.button) :
+            break
+        ret, frame = cap.read()
+        if not ret:
+            print("Failed to read from camera.")
+            break
+
+        head_score = hp.compute(frame)
+        gaze_score = gz.compute(frame)
+        blink_score = bk.compute(frame)
+
+        print(f"[{frame_id}] H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}")
+
+        frame_id += 1
+        if DISPLAY:
+            # 2) 가로로 이어붙이기
+            all_combined = cv2.hconcat([hp.frame,
+                                        gz.frame,
+                                        bk.frame])
+            # (또는 np.hstack([…, …, …]) 사용 가능)
+
+            # 3) 창 띄우기
+            cv2.namedWindow("All Combined", cv2.WINDOW_NORMAL)
+            # 가로 너비 3×W, 세로 높이 2×H 로 리사이즈
+            cv2.resizeWindow("All Combined",
+                            config.WINDOW_WIDTH * 3,
+                            config.WINDOW_HEIGHT * 2 if DISPLAY_GRAPH else config.WINDOW_HEIGHT)
+            cv2.putText(all_combined, "Calibrating",
+                        ((all_combined.shape[1] - cv2.getTextSize("Calibrating", cv2.FONT_HERSHEY_SIMPLEX, 2.0, 4)[0][0]) // 2,
+                         (all_combined.shape[0] + cv2.getTextSize("Calibrating", cv2.FONT_HERSHEY_SIMPLEX, 2.0, 4)[0][1]) // 2),
+                         cv2.FONT_HERSHEY_SIMPLEX, 3.0, (0, 0, 255), 5, cv2.LINE_AA)
+
+
+            cv2.imshow("All Combined", all_combined)
+
+            #cv2.imshow("Frame", frame)
+        cv2.waitKey(1)
+
+
+    print("Calibration done.")
 
     while True:
         ret, frame = cap.read()
@@ -40,8 +92,9 @@ def main():
 
         # 전체 집중도 예시 (가중 평균)
         overall = (head_score*0.3 + gaze_score*0.3 + blink_score*0.4)
-        graph._update_plot(overall, gaze_score, blink_score, head_score)
-        print(f"H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f} → O: {overall:.2f}")
+        if (DISPLAY_OVERALL):
+            graph._update_plot(overall, gaze_score, blink_score, head_score)
+        print(f"H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}")
         if DISPLAY:
             # 2) 가로로 이어붙이기
             all_combined = cv2.hconcat([hp.frame,
@@ -54,11 +107,11 @@ def main():
             # 가로 너비 3×W, 세로 높이 2×H 로 리사이즈
             cv2.resizeWindow("All Combined",
                             config.WINDOW_WIDTH * 3,
-                            config.WINDOW_HEIGHT * 2)
+                            config.WINDOW_HEIGHT * 2 if DISPLAY_GRAPH else config.WINDOW_HEIGHT)
             cv2.imshow("All Combined", all_combined)
             
-
-        graph.show_graph()
+        if DISPLAY_OVERALL:
+            graph.show_graph()
         if cv2.waitKey(1) & 0xFF == 27:
             break
 
