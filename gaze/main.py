@@ -37,8 +37,9 @@ def get_score(value: float, threshold: float, max_range: float) -> float:
         return np.interp(abs_val, [threshold, max_range], [1.0, 0.0])
 
 class Gaze:
-    def __init__(self, display: bool = False):
+    def __init__(self, display: bool = False, display_graph: bool = False):
         self.display = display
+        self.display_graph = display_graph
         self.face_mesh = mp.solutions.face_mesh.FaceMesh(
             max_num_faces=1,
             refine_landmarks=True,
@@ -70,7 +71,7 @@ class Gaze:
 
     def compute(self, frame: np.ndarray) -> float:
 
-        print("Gaze compute start")
+        #print("Gaze compute start")
         start_time = time.time()
         GazeFrame = frame.copy()
 
@@ -117,42 +118,45 @@ class Gaze:
             #cv2.imshow("Gaze", GazeFrame)
 
             ## graph
-            plot_img = self.graph.plot_to_image()
-            plot_img_resized = cv2.resize(
-                plot_img,
-                (config.WINDOW_WIDTH, config.WINDOW_HEIGHT),
-                interpolation=cv2.INTER_AREA
-            )
-            #cv2.imshow("Gaze Plot", plot_img_resized)
+            if self.display_graph:
+                plot_img = self.graph.plot_to_image()
+                plot_img_resized = cv2.resize(
+                    plot_img,
+                    (config.WINDOW_WIDTH, config.WINDOW_HEIGHT),
+                    interpolation=cv2.INTER_AREA
+                )
+                #cv2.imshow("Gaze Plot", plot_img_resized)
 
-            # 3) dtype → uint8
-            if plot_img.dtype != np.uint8:
-                plot_img = np.clip(plot_img * 255, 0, 255).astype(np.uint8)
+                # 3) dtype → uint8
+                if plot_img.dtype != np.uint8:
+                    plot_img = np.clip(plot_img * 255, 0, 255).astype(np.uint8)
 
-            # 4) 채널 수 맞추기: gray→BGR, RGBA→BGR
-            if plot_img.ndim == 2:
-                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_GRAY2BGR)
-            elif plot_img.shape[2] == 4:
-                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGBA2BGR)
+                # 4) 채널 수 맞추기: gray→BGR, RGBA→BGR
+                if plot_img.ndim == 2:
+                    plot_img = cv2.cvtColor(plot_img, cv2.COLOR_GRAY2BGR)
+                elif plot_img.shape[2] == 4:
+                    plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGBA2BGR)
 
-            # 5) 색순서 맞추기: RGB→BGR
-            plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGB2BGR)
+                # 5) 색순서 맞추기: RGB→BGR
+                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGB2BGR)
 
-            # 6) 동일한 크기로 리사이즈
-            h, w = GazeFrame.shape[:2]
-            plot_img_resized = cv2.resize(
-                plot_img,
-                (w, h),
-                interpolation=cv2.INTER_AREA
-            )
+                # 6) 동일한 크기로 리사이즈
+                h, w = GazeFrame.shape[:2]
+                plot_img_resized = cv2.resize(
+                    plot_img,
+                    (w, h),
+                    interpolation=cv2.INTER_AREA
+                )
 
-            # 7) 두 이미지를 세로로 이어붙이기
-            self.frame = cv2.vconcat([GazeFrame, plot_img_resized])
-            # cv2.namedWindow("Gaze Combined", cv2.WINDOW_NORMAL)
-            # # 8) 창 크기 조정 및 출력
-            # cv2.resizeWindow("Gaze Combined",  config.WINDOW_WIDTH, config.WINDOW_HEIGHT * 2)
-            # cv2.imshow("Gaze Combined", self.frame)
-        print("Gaze compute end, elapsed time : ", time.time() - start_time)
+                # 7) 두 이미지를 세로로 이어붙이기
+                self.frame = cv2.vconcat([GazeFrame, plot_img_resized])
+            else:
+                self.frame = GazeFrame
+                # cv2.namedWindow("Gaze Combined", cv2.WINDOW_NORMAL)
+                # # 8) 창 크기 조정 및 출력
+                # cv2.resizeWindow("Gaze Combined",  config.WINDOW_WIDTH, config.WINDOW_HEIGHT * 2)
+                # cv2.imshow("Gaze Combined", self.frame)
+        #print("Gaze compute end, elapsed time : ", time.time() - start_time)
         if results.multi_face_landmarks:
             # Calculate the gaze score based on the vertical and horizontal angles
             # Here we can use a simple average of the angles as a score, or any other logic
