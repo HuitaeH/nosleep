@@ -5,6 +5,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from .FaceMeshModule import FaceMeshGenerator
 from utils import DrawingUtils
 import os
+import time
 
 
 class BlinkCounterandEARPlot:
@@ -48,6 +49,10 @@ class BlinkCounterandEARPlot:
         self.closed_eye_time = 0.0  # 눈 감은 시간 (초 단위)
         self.eye_open = True  # True면 눈 뜬 상태
         self.concentration_values = []  # ⭐️ 추가 (concentration 기록용 리스트)
+
+        self.blink_state = False
+        self.ear_low_start_time = None
+        self.BLINK_MIN_DURATION = 0.08
         
         # Initialize video saving parameters
         self._init_video_saving(save_video, output_filename)
@@ -305,13 +310,20 @@ class BlinkCounterandEARPlot:
         
         # EAR 기반으로 눈 감/뜬 판단
         is_eye_closed = (ear < self.EAR_THRESHOLD)
+        current_time = time.time()
 
         if is_eye_closed:
-            self.frame_counter += 1
+            if not self.blink_state:
+                self.ear_low_start_time = current_time
+                self.blink_state = True                
         else:
-            if self.frame_counter >= self.CONSEC_FRAMES:
-                self.blink_counter += 1
-            self.frame_counter = 0
+            if self.blink_state and self.ear_low_start_time:
+                    blink_duration = current_time - self.ear_low_start_time
+                    if blink_duration >= self.BLINK_MIN_DURATION:
+                        self.blink_counter += 1
+                        print("[BLINK] Blink detected at frame")
+            self.blink_state = False
+            self.ear_low_start_time = None
 
         # --- Concentration Score 업데이트 ---
         # 1프레임 시간 계산 (초 단위)

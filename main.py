@@ -14,7 +14,7 @@ DISPLAY = True
 
 def main():
     print("Initializing modules...")
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     # resolution settings
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
