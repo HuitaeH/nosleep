@@ -146,7 +146,7 @@ class HeadPose:
                 # yaw = np.arctan2(-rotation_matrix[2, 0], sy)
                 # roll = 0
 
-                pitch = np.degrees(pitch)
+                # ????? pitch = np.degrees(pitch)
                 # yaw = np.degrees(yaw)
                 # roll = np.degrees(roll)
                 self.graph._update_plot(pitch)
@@ -279,7 +279,8 @@ class HeadPose:
 
 
         print("HeadPose compute end, time : ", time.time() - start_time)
-        return self.score
+        self.latest_pitch = pitch
+        return self.score, pitch
 class HeadPoseGraph:
     # Define colors for visualization
     COLORS = {

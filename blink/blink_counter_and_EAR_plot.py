@@ -53,6 +53,8 @@ class BlinkCounterandEARPlot:
         self.blink_state = False
         self.ear_low_start_time = None
         self.BLINK_MIN_DURATION = 0.08
+
+        self.current_pitch = 0.0
         
         # Initialize video saving parameters
         self._init_video_saving(save_video, output_filename)
@@ -62,6 +64,9 @@ class BlinkCounterandEARPlot:
         
         # Initialize plotting
         self._init_plot()
+
+    def set_pitch(self, pitch):
+        self.current_pitch = pitch
 
     def _init_video_saving(self, save_video, output_filename):
         """Initialize video saving parameters and create output directory if needed."""
@@ -283,33 +288,41 @@ class BlinkCounterandEARPlot:
             for loc in eye:
                 cv.circle(frame, (landmarks[loc]), 2, color, cv.FILLED)
         
-        # Draw blink counter
-        DrawingUtils.draw_text_with_bg(
-            frame, f"Blinks: {self.blink_counter}", (0, 60),
-            font_scale=2, thickness=3,
-            bg_color=color, text_color=(0, 0, 0)
-        )
-        # Draw blink counter
-        DrawingUtils.draw_text_with_bg(
-            frame, f"Blinks: {self.blink_counter}", (0, 60),
-            font_scale=2, thickness=3,
-            bg_color=color, text_color=(0, 0, 0)
-        )
+        # # Draw blink counter
+        # DrawingUtils.draw_text_with_bg(
+        #     frame, f"Blinks: {self.blink_counter}", (0, 60),
+        #     font_scale=2, thickness=3,
+        #     bg_color=color, text_color=(0, 0, 0)
+        # )
+        # # Draw blink counter
+        # DrawingUtils.draw_text_with_bg(
+        #     frame, f"Blinks: {self.blink_counter}", (0, 60),
+        #     font_scale=2, thickness=3,
+        #     bg_color=color, text_color=(0, 0, 0)
+        # )
 
-        # Draw concentration score
-        DrawingUtils.draw_text_with_bg(
-            frame, f"Concentration: {int(self.concentration_score)}", (0, 120),
-            font_scale=1.8, thickness=3,
-            bg_color=(255, 215, 0),  # Gold color
-            text_color=(0, 0, 0)
-        )
+        # # Draw concentration score
+        # DrawingUtils.draw_text_with_bg(
+        #     frame, f"Concentration: {int(self.concentration_score)}", (0, 120),
+        #     font_scale=1.8, thickness=3,
+        #     bg_color=(255, 215, 0),  # Gold color
+        #     text_color=(0, 0, 0)
+        # )
 
     def _update_blink_detection(self, ear):
         self.ear_values.append(ear)
         self.frame_numbers.append(self.frame_number)
-        
+
+        adjusted_threshold = self.EAR_THRESHOLD
+        pitch_abs = abs(self.current_pitch)
+
+        if pitch_abs > 10 :
+            adjusted_threshold -= (pitch_abs - 10) * 0.001
+            adjusted_threshold = max(0.15, adjusted_threshold)
+        print(f"EAR: {ear:.3f}, Pitch: {pitch_abs:.1f}, Adjusted Threshold: {adjusted_threshold:.3f}")
+
         # EAR 기반으로 눈 감/뜬 판단
-        is_eye_closed = (ear < self.EAR_THRESHOLD)
+        is_eye_closed = (ear < adjusted_threshold)
         current_time = time.time()
 
         if is_eye_closed:

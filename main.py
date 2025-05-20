@@ -14,7 +14,7 @@ DISPLAY = True
 
 def main():
     print("Initializing modules...")
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
     # resolution settings
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
@@ -33,7 +33,8 @@ def main():
             break
 
         # ?�� 모듈 모두 0~1 ?��코어 반환
-        head_score = hp.compute(frame)
+        head_score, pitch = hp.compute(frame)
+        bk.blink_counter.set_pitch(pitch)
         gaze_score = gz.compute(frame)
         blink_score = bk.compute(frame)
 
