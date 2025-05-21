@@ -5,6 +5,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from .FaceMeshModule import FaceMeshGenerator
 from utils import DrawingUtils
 import os
+import time
 
 
 class BlinkCounterandEARPlot:
@@ -48,6 +49,12 @@ class BlinkCounterandEARPlot:
         self.closed_eye_time = 0.0  # 눈 감은 시간 (초 단위)
         self.eye_open = True  # True면 눈 뜬 상태
         self.concentration_values = []  # ⭐️ 추가 (concentration 기록용 리스트)
+
+        self.blink_state = False
+        self.ear_low_start_time = None
+        self.BLINK_MIN_DURATION = 0.08
+
+        self.current_pitch = 0.0
         
         # Initialize video saving parameters
         self._init_video_saving(save_video, output_filename)
@@ -57,6 +64,9 @@ class BlinkCounterandEARPlot:
         
         # Initialize plotting
         self._init_plot()
+
+    def set_pitch(self, pitch):
+        self.current_pitch = pitch
 
     def _init_video_saving(self, save_video, output_filename):
         """Initialize video saving parameters and create output directory if needed."""
@@ -302,16 +312,31 @@ class BlinkCounterandEARPlot:
     def _update_blink_detection(self, ear):
         self.ear_values.append(ear)
         self.frame_numbers.append(self.frame_number)
-        
+
+        adjusted_threshold = self.EAR_THRESHOLD
+        pitch_abs = abs(self.current_pitch)
+
+        if pitch_abs > 10 :
+            adjusted_threshold -= (pitch_abs - 10) * 0.001
+            adjusted_threshold = max(0.15, adjusted_threshold)
+        print(f"EAR: {ear:.3f}, Pitch: {pitch_abs:.1f}, Adjusted Threshold: {adjusted_threshold:.3f}")
+
         # EAR 기반으로 눈 감/뜬 판단
-        is_eye_closed = (ear < self.EAR_THRESHOLD)
+        is_eye_closed = (ear < adjusted_threshold)
+        current_time = time.time()
 
         if is_eye_closed:
-            self.frame_counter += 1
+            if not self.blink_state:
+                self.ear_low_start_time = current_time
+                self.blink_state = True                
         else:
-            if self.frame_counter >= self.CONSEC_FRAMES:
-                self.blink_counter += 1
-            self.frame_counter = 0
+            if self.blink_state and self.ear_low_start_time:
+                    blink_duration = current_time - self.ear_low_start_time
+                    if blink_duration >= self.BLINK_MIN_DURATION:
+                        self.blink_counter += 1
+                        print("[BLINK] Blink detected at frame")
+            self.blink_state = False
+            self.ear_low_start_time = None
 
         # --- Concentration Score 업데이트 ---
         # 1프레임 시간 계산 (초 단위)

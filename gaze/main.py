@@ -85,8 +85,6 @@ class Gaze:
             self.vertical = vertical
             self.horizontal = horizontal
             self.graph._update_plot(self.vertical, self.horizontal)  # Update the graph with the new angles
-
-
             # calibration
             self.num_frame += 1
             if self.button:
@@ -97,8 +95,7 @@ class Gaze:
                     self.gaze_horizontal_off = self.gaze_horizontal_sum / self.FRAME_THRESHOLD
                     self.gaze_vertical_off = self.gaze_vertical_sum / self.FRAME_THRESHOLD
                     self.button = False
-
-        
+                    
         if self.display:
             # Display the frame with gaze overlay (if needed)
             

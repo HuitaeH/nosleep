@@ -14,7 +14,7 @@ class Blink:
         self.blink_counter = BlinkCounterandEARPlot(
         video_path=0, # webcam
         threshold=0.294,
-        consec_frames=3,
+        consec_frames=1,
         save_video=False,
         )
         self.last_blink_time = None
@@ -42,11 +42,11 @@ class Blink:
                     self.blink_intervals.append((now, interval))
                 self.last_blink_time = now
 
-            self.blink_intervals = [(t, interval) for t, interval in self.blink_intervals if now - t <= 5.0]
+            self.blink_intervals = [(t, interval) for t, interval in self.blink_intervals if now - t <= 10.0]
 
             if self.blink_intervals:
                 avg_interval = np.mean([interval for _, interval in self.blink_intervals])
-                normalized_score = min(avg_interval / 5.0, 1.0)
+                normalized_score = min(avg_interval / 10.0, 1.0)
 
             else :
                 normalized_score = 0.0
