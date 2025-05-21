@@ -10,6 +10,11 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import config
 import keyboard  # pip install keyboard
+import sys
+import platform
+import time
+
+
 
 DISPLAY = True              # camera display
 DISPLAY_GRAPH = False       # graph display
@@ -17,12 +22,27 @@ DISPLAY_OVERALL = False     # overall concentration display
 
 def main():
     print("Initializing modules...")
-    cap = cv2.VideoCapture(0)
-    # resolution settings
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    cap = None
+    picam = None
+    if platform.system() == "Windows":
+        cap = cv2.VideoCapture(0)
+            # resolution settings
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    else:
+        from picamera.array import PiRGBArray
+        from picamera import PiCamera
+        picam = PiCamera()
+        picam.resolution = (640, 480)
+        picam.framerate = 30
+        rawCapture = PiRGBArray(picam, size=(640, 480))
+        time.sleep(0.1)  # 카메라 워밍업
+        camera_type = "picamera"
+        
+
+
     hp = HeadPose(display=DISPLAY, display_graph = DISPLAY_GRAPH, frame_width=640, frame_height=480)
     gz = Gaze(display=DISPLAY, display_graph = DISPLAY_GRAPH)
     bk = Blink(display=DISPLAY, display_graph = DISPLAY_GRAPH)
@@ -37,12 +57,18 @@ def main():
             print("Calibration started.")
             break
     while True:
+        frame = None
         if (not hp.button and not gz.button) :
             break
-        ret, frame = cap.read()
-        if not ret:
-            print("Failed to read from camera.")
-            break
+        if platform.system() == "Windows":
+            ret, frame = cap.read()
+            if not ret:
+                print("Failed to read from camera.")
+                break
+        else:
+            capture = next(picam.capture_continuous(rawCapture, format="bgr", use_video_port=True))
+            frame = capture.array
+            rawCapture.truncate(0)
 
         head_score = hp.compute(frame)
         gaze_score = gz.compute(frame)

@@ -1,0 +1,25 @@
+absl-py==2.1.0
+attrs==24.2.0
+coloredlogs==15.0.1
+cycler==0.11.0
+flatbuffers==20181003210633
+fonttools==4.38.0
+humanfriendly==10.0
+importlib-metadata==6.7.0
+keyboard==0.13.5
+kiwisolver==1.4.5
+matplotlib==3.5.3
+mediapipe @ file:///home/team1/MediaPipe-on-RaspberryPi/RPi%203/mediapipe-0.8.8-cp37-cp37m-linux_armv7l.whl
+mpmath==1.3.0
+numpy==1.21.6
+onnxruntime @ file:///home/team1/onnxruntime1.14.1-rpi37_32bit_wheel/onnxruntime-1.14.1-cp37-cp37m-linux_armv7l.whl
+opencv-contrib-python==4.5.1.48
+packaging==24.0
+Pillow==9.5.0
+protobuf==3.20.3
+pyparsing==3.1.4
+python-dateutil==2.9.0.post0
+six==1.17.0
+sympy==1.10.1
+typing_extensions==4.7.1
+zipp==3.15.0
