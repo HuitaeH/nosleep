@@ -16,7 +16,7 @@ import time
 
 
 
-DISPLAY = True              # camera display
+DISPLAY = False              # camera display
 DISPLAY_GRAPH = False       # graph display
 DISPLAY_OVERALL = False     # overall concentration display
 
