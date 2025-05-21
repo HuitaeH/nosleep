@@ -44,7 +44,7 @@ def main():
             print("Failed to read from camera.")
             break
 
-        head_score = hp.compute(frame)
+        head_score, pitch = hp.compute(frame)
         gaze_score = gz.compute(frame)
         blink_score = bk.compute(frame)
 

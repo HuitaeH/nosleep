@@ -288,26 +288,26 @@ class BlinkCounterandEARPlot:
             for loc in eye:
                 cv.circle(frame, (landmarks[loc]), 2, color, cv.FILLED)
         
-        # # Draw blink counter
-        # DrawingUtils.draw_text_with_bg(
-        #     frame, f"Blinks: {self.blink_counter}", (0, 60),
-        #     font_scale=2, thickness=3,
-        #     bg_color=color, text_color=(0, 0, 0)
-        # )
-        # # Draw blink counter
-        # DrawingUtils.draw_text_with_bg(
-        #     frame, f"Blinks: {self.blink_counter}", (0, 60),
-        #     font_scale=2, thickness=3,
-        #     bg_color=color, text_color=(0, 0, 0)
-        # )
+        # Draw blink counter
+        DrawingUtils.draw_text_with_bg(
+            frame, f"Blinks: {self.blink_counter}", (0, 60),
+            font_scale=2, thickness=3,
+            bg_color=color, text_color=(0, 0, 0)
+        )
+        # Draw blink counter
+        DrawingUtils.draw_text_with_bg(
+            frame, f"Blinks: {self.blink_counter}", (0, 60),
+            font_scale=2, thickness=3,
+            bg_color=color, text_color=(0, 0, 0)
+        )
 
-        # # Draw concentration score
-        # DrawingUtils.draw_text_with_bg(
-        #     frame, f"Concentration: {int(self.concentration_score)}", (0, 120),
-        #     font_scale=1.8, thickness=3,
-        #     bg_color=(255, 215, 0),  # Gold color
-        #     text_color=(0, 0, 0)
-        # )
+        # Draw concentration score
+        DrawingUtils.draw_text_with_bg(
+            frame, f"Concentration: {int(self.concentration_score)}", (0, 120),
+            font_scale=1.8, thickness=3,
+            bg_color=(255, 215, 0),  # Gold color
+            text_color=(0, 0, 0)
+        )
 
     def _update_blink_detection(self, ear):
         self.ear_values.append(ear)
