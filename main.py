@@ -51,11 +51,19 @@ def main():
 
         # 2. 캘리브레이션 시작
     frame_id = 0
-    print("Start calibration. press 'c' to start.")
+    print("Start calibration. Press 'c' to start.")
+    empty_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    cv2.putText(empty_frame, "Press 'c' to start calibration",
+                (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+
     while True:
-        if keyboard.is_pressed('c'):
+        cv2.imshow("Calibration", empty_frame)
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('c'):
             print("Calibration started.")
             break
+
+    cv2.destroyWindow("Calibration")
     while True:
         frame = None
         if (not hp.button and not gz.button) :
