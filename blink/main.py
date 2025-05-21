@@ -7,8 +7,9 @@ import config
 import time
 
 class Blink:
-    def __init__(self, display: bool = False):
+    def __init__(self, display: bool = False, display_graph: bool = False):
         self.display = display
+        self.display_graph = display_graph
 
         self.blink_counter = BlinkCounterandEARPlot(
         video_path=0, # webcam
@@ -23,7 +24,7 @@ class Blink:
 
     def compute(self, frame: np.ndarray) -> float:
 
-        print("Blink compute start")
+        #print("Blink compute start")
         start_time = time.time()
         BlinkFrame = frame.copy()
         fps = 30.0
@@ -65,44 +66,47 @@ class Blink:
             #cv2.imshow("Blink", BlinkFrame)
 
             ## graph
-            plot_img = self.blink_counter.plot_to_image()
-            plot_img_resized = cv2.resize(
-                plot_img,
-                (config.WINDOW_WIDTH, config.WINDOW_HEIGHT),
-                interpolation=cv2.INTER_AREA
-            )
+            if self.display_graph:
+                plot_img = self.blink_counter.plot_to_image()
+                plot_img_resized = cv2.resize(
+                    plot_img,
+                    (config.WINDOW_WIDTH, config.WINDOW_HEIGHT),
+                    interpolation=cv2.INTER_AREA
+                )
 
-            #cv2.imshow("Blink Plot", plot_img_resized)
-            # (dtype) float → uint8
-            if plot_img.dtype != np.uint8:
-                plot_img = np.clip(plot_img * 255, 0, 255).astype(np.uint8)
+                #cv2.imshow("Blink Plot", plot_img_resized)
+                # (dtype) float → uint8
+                if plot_img.dtype != np.uint8:
+                    plot_img = np.clip(plot_img * 255, 0, 255).astype(np.uint8)
 
-            # (채널) 그레이스케일 → BGR, RGBA → BGR
-            if plot_img.ndim == 2:
-                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_GRAY2BGR)
-            elif plot_img.shape[2] == 4:
-                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGBA2BGR)
+                # (채널) 그레이스케일 → BGR, RGBA → BGR
+                if plot_img.ndim == 2:
+                    plot_img = cv2.cvtColor(plot_img, cv2.COLOR_GRAY2BGR)
+                elif plot_img.shape[2] == 4:
+                    plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGBA2BGR)
 
-            # (색순서) RGB → BGR
-            plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGB2BGR)
+                # (색순서) RGB → BGR
+                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGB2BGR)
 
-            # 3) 같은 크기로 리사이즈
-            h, w = BlinkFrame.shape[:2]
-            plot_img_resized = cv2.resize(
-                plot_img,
-                (w, h),
-                interpolation=cv2.INTER_AREA
-            )
+                # 3) 같은 크기로 리사이즈
+                h, w = BlinkFrame.shape[:2]
+                plot_img_resized = cv2.resize(
+                    plot_img,
+                    (w, h),
+                    interpolation=cv2.INTER_AREA
+                )
 
-            # 4) 세로로 이어붙이기
-            self.frame = cv2.vconcat([BlinkFrame, plot_img_resized])
-            # 또는: combined = np.vstack((BlinkFrame, plot_img_resized))
+                # 4) 세로로 이어붙이기
+                self.frame = cv2.vconcat([BlinkFrame, plot_img_resized])
+            else:
+                self.frame = BlinkFrame
+                # 또는: combined = np.vstack((BlinkFrame, plot_img_resized))
 
-            # 5) 하나의 창에 띄우기
-            # cv2.namedWindow("Blink Combined", cv2.WINDOW_NORMAL)
-            # cv2.resizeWindow("Blink Combined",  config.WINDOW_WIDTH, config.WINDOW_HEIGHT * 2)
-            # cv2.imshow("Blink Combined", self.frame)
-        print("Blink compute end, time : ", time.time() - start_time)
+                # 5) 하나의 창에 띄우기
+                # cv2.namedWindow("Blink Combined", cv2.WINDOW_NORMAL)
+                # cv2.resizeWindow("Blink Combined",  config.WINDOW_WIDTH, config.WINDOW_HEIGHT * 2)
+                # cv2.imshow("Blink Combined", self.frame)
+        #print("Blink compute end, time : ", time.time() - start_time)
 
         return 1-normalized_score
 

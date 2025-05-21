@@ -25,8 +25,9 @@ FACE_LANDMARKS = "./headpose/assets/face_landmarks.onnx"
 HEAD_DOWN_THRESHOLD = -10.0 # 10 이상 머리 떨굼 발생 시 스코어에 영향 
 
 class HeadPose:
-    def __init__(self, display: bool = False, frame_width: int = 640, frame_height: int = 480):
+    def __init__(self, display: bool = False, display_graph: bool = False, frame_width: int = 640, frame_height: int = 480):
         self.display = display
+        self.display_graph = display_graph
         # video_src = 0
         # cap = cv2.VideoCapture(video_src)
         # print(f"Video source: {video_src}")
@@ -78,7 +79,7 @@ class HeadPose:
 
     def compute(self, frame: np.ndarray) -> float:
 
-        print("HeadPose compute start")
+        #print("HeadPose compute start")
         start_time = time.time()
         HeadPoseFrame = frame.copy()
 
@@ -126,17 +127,17 @@ class HeadPose:
                 pitch = np.degrees(pitch)
                 default_pitch += pitch 
                 self.default_pitch = default_pitch
-                print(f"Frame Number: {self.num_frame}")
-                print(f"Default Pitch(cumulative): {default_pitch:.2f}")
-                print(f"Pitch(measuring default): {pitch:.2f}")
+                # print(f"Frame Number: {self.num_frame}")
+                # print(f"Default Pitch(cumulative): {default_pitch:.2f}")
+                # print(f"Pitch(measuring default): {pitch:.2f}")
 
                 if self.num_frame == self.FRAME_THRESHOLD:
                     default_pitch = default_pitch/self.num_frame
                     self.default_pitch = default_pitch
                     self.button = False
-                    print(f"Frame Number: {self.num_frame}")
-                    print(f"Default Pitch(Final): {default_pitch:.2f}")
-                    print(f"Pitch(mesuring default): {pitch:.2f}")
+                    # print(f"Frame Number: {self.num_frame}")
+                    # print(f"Default Pitch(Final): {default_pitch:.2f}")
+                    # print(f"Pitch(mesuring default): {pitch:.2f}")
 
             
                 # yaw = np.degrees(yaw)
@@ -157,9 +158,9 @@ class HeadPose:
                 # score = max(0.0, 1.0 - abs(pitch) / max_pitch)
             else:  
                 max_pitch = 30
-                print(f"Default Pitch(fixed): {default_pitch:.2f}")
+                #print(f"Default Pitch(fixed): {default_pitch:.2f}")
                 pitch = np.degrees(pitch) - default_pitch
-                print(f"Pitch: {pitch:.2f}")
+                #print(f"Pitch: {pitch:.2f}")
                 current_time = time.time()  # 현재 시간(초) 
                 if pitch <= self.PITCH_THRESHOLD:
                     if not self.is_pitch_down:
@@ -235,41 +236,45 @@ class HeadPose:
             #cv2.imshow("HeadPose", HeadPoseFrame)
 
             ## graph
-            plot_img = self.graph.plot_to_image()
-            plot_img_resized = cv2.resize(
-                plot_img,
-                (config.WINDOW_WIDTH, config.WINDOW_HEIGHT),
-                interpolation=cv2.INTER_AREA
-            )
-            #cv2.imshow("HeadPose Plot", plot_img_resized)
-            # 세로로 concat
+            if self.display_graph:
+                plot_img = self.graph.plot_to_image()
+                plot_img_resized = cv2.resize(
+                    plot_img,
+                    (config.WINDOW_WIDTH, config.WINDOW_HEIGHT),
+                    interpolation=cv2.INTER_AREA
+                )
+                #cv2.imshow("HeadPose Plot", plot_img_resized)
+                # 세로로 concat
 
 
-            # (1) 타입(dtype) 맞추기: float → uint8
-            if plot_img.dtype != np.uint8:
-                # 0.0~1.0 범위라면 255 곱해주고, 클립 후 uint8 변환
-                plot_img = np.clip(plot_img * 255, 0, 255).astype(np.uint8)
+                # (1) 타입(dtype) 맞추기: float → uint8
+                if plot_img.dtype != np.uint8:
+                    # 0.0~1.0 범위라면 255 곱해주고, 클립 후 uint8 변환
+                    plot_img = np.clip(plot_img * 255, 0, 255).astype(np.uint8)
 
-            # (2) 채널수 맞추기
-            # - 그레이스케일 (ndim==2) → BGR
-            if plot_img.ndim == 2:
-                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_GRAY2BGR)
-            # - RGBA (4채널) → BGR
-            elif plot_img.shape[2] == 4:
-                # 만약 RGB순이면 COLOR_RGBA2BGR, BGR순이면 COLOR_BGRA2BGR
-                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGBA2BGR)
+                # (2) 채널수 맞추기
+                # - 그레이스케일 (ndim==2) → BGR
+                if plot_img.ndim == 2:
+                    plot_img = cv2.cvtColor(plot_img, cv2.COLOR_GRAY2BGR)
+                # - RGBA (4채널) → BGR
+                elif plot_img.shape[2] == 4:
+                    # 만약 RGB순이면 COLOR_RGBA2BGR, BGR순이면 COLOR_BGRA2BGR
+                    plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGBA2BGR)
 
-            # (3) 컬러 순서 맞추기 (RGB → BGR)
-            # Matplotlib 이미지는 보통 RGB이므로
-            plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGB2BGR)
+                # (3) 컬러 순서 맞추기 (RGB → BGR)
+                # Matplotlib 이미지는 보통 RGB이므로
+                plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGB2BGR)
 
-            # (4) 크기 맞추기: HeadPoseFrame 과 같은 너비/높이로
-            h, w = HeadPoseFrame.shape[:2]
-            plot_img_resized = cv2.resize(plot_img, (w, h), interpolation=cv2.INTER_AREA)
+                # (4) 크기 맞추기: HeadPoseFrame 과 같은 너비/높이로
+                h, w = HeadPoseFrame.shape[:2]
+                plot_img_resized = cv2.resize(plot_img, (w, h), interpolation=cv2.INTER_AREA)
 
-            self.frame = cv2.vconcat([HeadPoseFrame, plot_img_resized])
-            # 또는 numpy로
-            # combined = np.vstack((HeadPoseFrame, plot_img_resized))
+                self.frame = cv2.vconcat([HeadPoseFrame, plot_img_resized])
+            else:
+                self.frame = HeadPoseFrame
+                # 또는 numpy로
+                # combined = np.vstack((HeadPoseFrame, plot_img_resized))
+
 
             # # 하나의 창에 띄우기
             # cv2.namedWindow("HeadPose Combined", cv2.WINDOW_NORMAL)
@@ -281,6 +286,9 @@ class HeadPose:
         print("HeadPose compute end, time : ", time.time() - start_time)
         self.latest_pitch = pitch
         return self.score, pitch
+
+        #print("HeadPose compute end, time : ", time.time() - start_time)
+
 class HeadPoseGraph:
     # Define colors for visualization
     COLORS = {
