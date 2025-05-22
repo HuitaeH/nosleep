@@ -28,7 +28,7 @@ class BT:
         
         for i, device in enumerate(devices):
             print(f"[{i}] {device['name']} ({device['addr']})")
-        index = input("Select device (int, -1 : Not connect): ")
+        index = input("Select device (-1 : not connect): ")
         
         try:
             if (int(index) == -1):
