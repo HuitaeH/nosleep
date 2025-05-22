@@ -84,7 +84,7 @@ def main():
             frame = capture.array
             rawCapture.truncate(0)
 
-        head_score = hp.compute(frame)
+        head_score, pitch = hp.compute(frame)
         gaze_score = gz.compute(frame)
         blink_score = bk.compute(frame)
 
@@ -131,7 +131,8 @@ def main():
             rawCapture.truncate(0)
 
         # ?�� 모듈 모두 0~1 ?��코어 반환
-        head_score = hp.compute(frame)
+        head_score, pitch = hp.compute(frame)
+        bk.blink_counter.set_pitch(pitch)
         gaze_score = gz.compute(frame)
         blink_score = bk.compute(frame)
 
@@ -168,7 +169,7 @@ def main():
             graph.show_graph()
         if cv2.waitKey(1) & 0xFF == 27:
             break
-
+        
     cap.release()
     cv2.destroyAllWindows()
     gz.close_face_mesh()

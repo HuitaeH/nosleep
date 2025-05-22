@@ -70,8 +70,6 @@ class HeadPose:
         self.score_history = []
         self.graph = HeadPoseGraph()
         self.frame = None
-        
-
         # 250508 button pressed
         self.button = True
         self.num_frame = 0
@@ -79,7 +77,6 @@ class HeadPose:
         self.default_pitch = 0.0
         pass
 
-    
     def compute(self, frame: np.ndarray) -> float:
 
         #print("HeadPose compute start")
@@ -150,13 +147,12 @@ class HeadPose:
                 # yaw = np.arctan2(-rotation_matrix[2, 0], sy)
                 # roll = 0
 
-                pitch = np.degrees(pitch)
+                # ????? pitch = np.degrees(pitch)
                 # yaw = np.degrees(yaw)
                 # roll = np.degrees(roll)
                 self.graph._update_plot(pitch)
 
-                # print(f"Pitch: {pitch:.2f}, Yaw: {yaw:.2f}, Roll: {roll:.2f}")
-
+                #print(f"Pitch: {pitch:.2f}, Yaw: {yaw:.2f}, Roll: {roll:.2f}")
                 # pitch를 기반으로 점수 계산
                
                 # score = max(0.0, 1.0 - abs(pitch) / max_pitch)
@@ -177,6 +173,7 @@ class HeadPose:
                     else:
                         # 이미 숙이고 있는 상태 → 지속 시간 계산
                         self.pitch_down_duration = current_time - self.pitch_down_start_time
+
                 else:
                     if self.is_pitch_down:
                         # 고개를 다시 들었을 때 
@@ -278,8 +275,16 @@ class HeadPose:
                 # 또는 numpy로
                 # combined = np.vstack((HeadPoseFrame, plot_img_resized))
 
-        #print("HeadPose compute end, time : ", time.time() - start_time)
-        return self.score
+            # # 하나의 창에 띄우기
+            # cv2.namedWindow("HeadPose Combined", cv2.WINDOW_NORMAL)
+            # # 창 크기도 세로가 두 배가 되도록 설정
+            # cv2.resizeWindow("HeadPose Combined", config.WINDOW_WIDTH, config.WINDOW_HEIGHT * 2)
+            # cv2.imshow("HeadPose Combined", self.frame)
+
+
+        print("HeadPose compute end, time : ", time.time() - start_time)
+        self.latest_pitch = pitch
+        return self.score, pitch
 class HeadPoseGraph:
     # Define colors for visualization
     COLORS = {
