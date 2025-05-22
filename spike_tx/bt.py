@@ -1,5 +1,4 @@
 import bluetooth
-
 class BT():
     def __init__(self):
         pass

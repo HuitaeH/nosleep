@@ -15,10 +15,10 @@ import platform
 import time
 
 
-import bluetooth_client as bt
+from spike_tx import BT
 import asyncio
 
-DISPLAY = False              # camera display
+DISPLAY = True             # camera display
 DISPLAY_GRAPH = False       # graph display
 DISPLAY_OVERALL = False     # overall concentration display
 
@@ -42,6 +42,10 @@ def main():
         rawCapture = PiRGBArray(picam, size=(640, 480))
         time.sleep(0.1)  # 카메라 워밍업
         camera_type = "picamera"
+
+    #for bluetooth
+    bt = BT()
+    bt.select_and_connect()
         
 
 
@@ -115,10 +119,16 @@ def main():
     print("Calibration done.")
 
     while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("Failed to capture video frame.")
-            break
+        frame = None
+        if platform.system() == "Windows":
+            ret, frame = cap.read()
+            if not ret:
+                print("Failed to read from camera.")
+                break
+        else:
+            capture = next(picam.capture_continuous(rawCapture, format="bgr", use_video_port=True))
+            frame = capture.array
+            rawCapture.truncate(0)
 
         # ?�� 모듈 모두 0~1 ?��코어 반환
         head_score = hp.compute(frame)
