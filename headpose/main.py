@@ -282,7 +282,7 @@ class HeadPose:
             # cv2.imshow("HeadPose Combined", self.frame)
 
 
-        print("HeadPose compute end, time : ", time.time() - start_time)
+        #print("HeadPose compute end, time : ", time.time() - start_time)
         self.latest_pitch = pitch
         return self.score, pitch
 class HeadPoseGraph:
