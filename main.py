@@ -17,10 +17,13 @@ import time
 
 from spike_tx import BT, Command
 import asyncio
+from predictor import RealtimePredictor
 
 DISPLAY = True             # camera display
 DISPLAY_GRAPH = False       # graph display
 DISPLAY_OVERALL = False     # overall concentration display
+rnn_model_path = './models/drowsiness_rnn_best.h5'
+
 
 def main():
     print("Initializing modules...")
@@ -53,6 +56,8 @@ def main():
     gz = Gaze(display=DISPLAY, display_graph = DISPLAY_GRAPH)
     bk = Blink(display=DISPLAY, display_graph = DISPLAY_GRAPH)
     graph = ConcentrationGraph()
+
+    predictor = RealtimePredictor(model_path = rnn_model_path) # model path 
     print("Modules initialized.")
 
         # 2. 캘리브레이션 시작
@@ -136,12 +141,11 @@ def main():
         gaze_score = gz.compute(frame)
         blink_score = bk.compute(frame)
 
-
-        # 전체 집중도 예시 (가중 평균)
-        overall = (head_score*0.3 + gaze_score*0.3 + blink_score*0.4)
-        if (DISPLAY_OVERALL):
-            graph._update_plot(overall, gaze_score, blink_score, head_score)
-        print(f"H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}")
+        # rnn model inference
+        predictor.update(head_score, gaze_score, blink_score)
+        pred_class = predictor.predict_if_ready()
+        if pred_class is not None:
+            print(f"prediction: {pred_class}")  
 
         # TODO : should be replaced with a model
         result = Command.DO_NOTHING
@@ -149,26 +153,30 @@ def main():
         ## send to robot
         asyncio.run(bt.send_command(result))
 
+        # 전체 집중도 예시 (가중 평균)
+        # overall = (head_score*0.3 + gaze_score*0.3 + blink_score*0.4)
+        # if (DISPLAY_OVERALL):
+        #     graph._update_plot(overall, gaze_score, blink_score, head_score)
+        # print(f"H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}")
+        # if DISPLAY:
+        #     # 2) 가로로 이어붙이기
+        #     all_combined = cv2.hconcat([hp.frame,
+        #                                 gz.frame,
+        #                                 bk.frame])
+        #     # (또는 np.hstack([…, …, …]) 사용 가능)
 
-        if DISPLAY:
-            # 2) 가로로 이어붙이기
-            all_combined = cv2.hconcat([hp.frame,
-                                        gz.frame,
-                                        bk.frame])
-            # (또는 np.hstack([…, …, …]) 사용 가능)
-
-            # 3) 창 띄우기
-            cv2.namedWindow("All Combined", cv2.WINDOW_NORMAL)
-            # 가로 너비 3×W, 세로 높이 2×H 로 리사이즈
-            cv2.resizeWindow("All Combined",
-                            config.WINDOW_WIDTH * 3,
-                            config.WINDOW_HEIGHT * 2 if DISPLAY_GRAPH else config.WINDOW_HEIGHT)
-            cv2.imshow("All Combined", all_combined)
+        #     # 3) 창 띄우기
+        #     cv2.namedWindow("All Combined", cv2.WINDOW_NORMAL)
+        #     # 가로 너비 3×W, 세로 높이 2×H 로 리사이즈
+        #     cv2.resizeWindow("All Combined",
+        #                     config.WINDOW_WIDTH * 3,
+        #                     config.WINDOW_HEIGHT * 2 if DISPLAY_GRAPH else config.WINDOW_HEIGHT)
+        #     cv2.imshow("All Combined", all_combined)
             
-        if DISPLAY_OVERALL:
-            graph.show_graph()
-        if cv2.waitKey(1) & 0xFF == 27:
-            break
+        # if DISPLAY_OVERALL:
+        #     graph.show_graph()
+        # if cv2.waitKey(1) & 0xFF == 27:
+        #     break
         
     cap.release()
     cv2.destroyAllWindows()
