@@ -16,7 +16,7 @@ DISPLAY = True              # camera display
 DISPLAY_GRAPH = False       # graph display
 DISPLAY_OVERALL = False     # overall concentration display
 rnn_model_path = './models/drowsiness_rnn_best.h5'
-predictor = RealtimePredictor(model_path = rnn_model_path) # model path 
+
 
 def main():
     print("Initializing modules...")
@@ -30,6 +30,8 @@ def main():
     gz = Gaze(display=DISPLAY, display_graph = DISPLAY_GRAPH)
     bk = Blink(display=DISPLAY, display_graph = DISPLAY_GRAPH)
     graph = ConcentrationGraph()
+
+    predictor = RealtimePredictor(model_path = rnn_model_path) # model path 
     print("Modules initialized.")
 
         # 2. 캘리브레이션 시작
