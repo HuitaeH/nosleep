@@ -15,7 +15,7 @@ import platform
 import time
 
 
-from spike_tx import BT
+from spike_tx import BT, Command
 import asyncio
 
 DISPLAY = True             # camera display
@@ -143,7 +143,7 @@ def main():
         print(f"H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}")
 
         # TODO : should be replaced with a model
-        result = bt.Command.DO_NOTHING
+        result = Command.DO_NOTHING
 
         ## send to robot
         asyncio.run(bt.send_command(result))

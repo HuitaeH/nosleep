@@ -1,1 +1,1 @@
-from .bluetooth_client import BT
+from .bluetooth_client import BT, Command
