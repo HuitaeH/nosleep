@@ -15,6 +15,8 @@ import platform
 import time
 
 
+import bluetooth_client as bt
+import asyncio
 
 DISPLAY = False              # camera display
 DISPLAY_GRAPH = False       # graph display
@@ -129,6 +131,14 @@ def main():
         if (DISPLAY_OVERALL):
             graph._update_plot(overall, gaze_score, blink_score, head_score)
         print(f"H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}")
+
+        # TODO : should be replaced with a model
+        result = bt.Command.DO_NOTHING
+
+        ## send to robot
+        asyncio.run(bt.send_command(result))
+
+
         if DISPLAY:
             # 2) 가로로 이어붙이기
             all_combined = cv2.hconcat([hp.frame,
