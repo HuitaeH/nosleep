@@ -319,7 +319,7 @@ class BlinkCounterandEARPlot:
         if pitch_abs > 10 :
             adjusted_threshold -= (pitch_abs - 10) * 0.001
             adjusted_threshold = max(0.15, adjusted_threshold)
-        print(f"EAR: {ear:.3f}, Pitch: {pitch_abs:.1f}, Adjusted Threshold: {adjusted_threshold:.3f}")
+        #print(f"EAR: {ear:.3f}, Pitch: {pitch_abs:.1f}, Adjusted Threshold: {adjusted_threshold:.3f}")
 
         # EAR 기반으로 눈 감/뜬 판단
         is_eye_closed = (ear < adjusted_threshold)
