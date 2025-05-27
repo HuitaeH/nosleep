@@ -22,6 +22,12 @@ class Blink:
         self.start_time = time.time()
         self.frame = None
 
+        ## Calibration 
+        self.button = True
+        self.num_frame = 0
+        self.default_interval = 0.0
+        self.FRAME_THRESHOLD = 50 
+
     def compute(self, frame: np.ndarray) -> float:
 
         #print("Blink compute start")
@@ -36,23 +42,45 @@ class Blink:
             self.blink_counter._update_blink_detection(ear)
             now = time.time()
             
-            if self.blink_counter.blink_counter > prev_blink_count:
-                if self.last_blink_time is not None:
-                    interval = now - self.last_blink_time
-                    self.blink_intervals.append((now, interval))
-                self.last_blink_time = now
+            ### modified 250527
+            self.num_frame += 1
+            if self.button and self.num_frame <= self.FRAME_THRESHOLD:
+                if self.blink_counter.blink_counter > prev_blink_count:
+                    if self.last_blink_time is not None:
+                        interval = now - self.last_blink_time
+                        self.blink_intervals.append((now, interval))
+                    self.last_blink_time = now
 
-            self.blink_intervals = [(t, interval) for t, interval in self.blink_intervals if now - t <= 10.0]
+                if self.num_frame == self.FRAME_THRESHOLD:
+                    if self.blink_intervals:
+                        self.default_interval = np.mean([interval for _, interval in self.blink_intervals])
+                    else:
+                        self.default_interval = 0.0
+                    self.button = False  # calibration 종료
+                    print(f"Default Interval: {self.default_interval:.2f} sec")
 
-            if self.blink_intervals:
-                avg_interval = np.mean([interval for _, interval in self.blink_intervals])
-                normalized_score = min(avg_interval / 10.0, 1.0)
+                normalized_score = 0.0  # calibration 중에는 점수 0
+                self.blink_counter._update_plot(ear)
 
-            else :
-                normalized_score = 0.0
+            else:
+                if self.blink_counter.blink_counter > prev_blink_count:
+                    if self.last_blink_time is not None:
+                        interval = now - self.last_blink_time
+                        self.blink_intervals.append((now, interval))
+                    self.last_blink_time = now
 
-            #self.blink_counter._update_visualization(frame, ear, fps)
-            self.blink_counter._update_plot(ear)
+                self.blink_intervals = [(t, interval) for t, interval in self.blink_intervals if now - t <= 10.0]
+
+                if self.blink_intervals:
+                    avg_interval = np.mean([interval for _, interval in self.blink_intervals])
+                    # normalized_score = min(self.default_interval / avg_interval, 1.0)
+                    normalized_score = min(max((avg_interval - self.default_interval)/10, 0.0), 1.0)
+
+                else :
+                    normalized_score = 0.0
+
+                #self.blink_counter._update_visualization(frame, ear, fps)
+                self.blink_counter._update_plot(ear)
         else :
             normalized_score = 0.0
 
