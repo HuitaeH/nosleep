@@ -11,6 +11,7 @@ from headpose.main import HeadPose
 from gaze.main import Gaze
 from blink.main import Blink
 from main import ConcentrationGraph
+import sys
 
 DISPLAY = True
 DISPLAY_OVERALL = False
@@ -21,8 +22,19 @@ def get_label_from_key():
         return 1
     elif keyboard.is_pressed('2'):
         return 2
-    else:
+    elif keyboard.is_pressed('0'):
         return 0
+    else:
+        return -1
+
+def log_above_progress(frame_id, head_score, gaze_score, blink_score, label):
+    # 커서를 한 줄 위로 올림
+    sys.stdout.write("\033[F")   # Move cursor up
+    sys.stdout.write("\033[K")   # Clear the line
+    print(f"[{frame_id}] H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}, Label: {label}")
+    sys.stdout.write("\033[K")   # Clear current line
+    print(f"ESC를 눌러 종료")
+    sys.stdout.flush()
 
 def main():
     print("Initializing modules...")
@@ -58,11 +70,11 @@ def main():
             print("Failed to read from camera.")
             break
 
-        head_score = hp.compute(frame)
+        head_score, _ = hp.compute(frame)
         gaze_score = gz.compute(frame)
         blink_score = bk.compute(frame)
 
-        print(f"[{frame_id}] H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}")
+        print(f"[{frame_id}] H: {head_score}, G: {gaze_score}, B: {blink_score}")
 
         frame_id += 1
         if DISPLAY:
@@ -109,21 +121,25 @@ def main():
                 print("Failed to read from camera.")
                 break
 
-            head_score = hp.compute(frame)
+            head_score, pitch = hp.compute(frame)
             gaze_score = gz.compute(frame)
             blink_score = bk.compute(frame)
-
             label = get_label_from_key()
-            writer.writerow([
-                frame_id,
-                round(head_score, 6),
-                round(gaze_score, 6),
-                round(blink_score, 6),
-                label
-            ])
-            print(f"[{frame_id}] H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}, Label: {label}")
+            if label != -1:
+                writer.writerow([
+                    frame_id,
+                    round(head_score, 6),
+                    round(gaze_score, 6),
+                    round(blink_score, 6),
+                    label
+                ])
+                frame_id += 1
+            
+            #print(f"[{frame_id}] H: {head_score}, G: {gaze_score}, B: {blink_score}, Label: {label}")
+            #print(f"[{frame_id}] H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}, Label: {label}")
+            log_above_progress(frame_id, head_score, gaze_score, blink_score, label)
 
-            frame_id += 1
+            
             if DISPLAY:
                 # 2) 가로로 이어붙이기
                 all_combined = cv2.hconcat([hp.frame,
