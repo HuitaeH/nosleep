@@ -26,8 +26,7 @@ rnn_model_path = './models/drowsiness_rnn_best.h5'
 
 
 def main():
-    rnn_model_path = './models/drowsiness_rnn_best.h5'
-    predictor = RealtimePredictor(model_path = rnn_model_path) # model path 
+
     print("Initializing modules...")
     cap = None
     picam = None
@@ -59,7 +58,9 @@ def main():
     bk = Blink(display=DISPLAY, display_graph = DISPLAY_GRAPH)
     graph = ConcentrationGraph()
 
+    #RNN
     predictor = RealtimePredictor(model_path = rnn_model_path) # model path 
+    
     print("Modules initialized.")
 
         # 2. 캘리브레이션 시작
