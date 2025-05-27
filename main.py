@@ -80,7 +80,7 @@ def main():
     cv2.destroyWindow("Calibration")
     while True:
         frame = None
-        if (not hp.button and not gz.button) :
+        if (not hp.button and not gz.button and not bk.button):
             break
         if platform.system() == "Windows":
             ret, frame = cap.read()

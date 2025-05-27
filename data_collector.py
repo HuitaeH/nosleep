@@ -63,7 +63,7 @@ def main():
             print("Calibration started.")
             break
     while True:
-        if (not hp.button and not gz.button) :
+        if (not hp.button and not gz.button and not bk.button):
             break
         ret, frame = cap.read()
         if not ret:
