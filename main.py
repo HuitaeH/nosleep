@@ -15,10 +15,10 @@ from predictor import RealtimePredictor
 DISPLAY = True              # camera display
 DISPLAY_GRAPH = False       # graph display
 DISPLAY_OVERALL = False     # overall concentration display
-rnn_model_path = './models/drowsiness_rnn_best.h5'
-predictor = RealtimePredictor(model_path = rnn_model_path) # model path 
 
 def main():
+    rnn_model_path = './models/drowsiness_rnn_best.h5'
+    predictor = RealtimePredictor(model_path = rnn_model_path) # model path 
     print("Initializing modules...")
     cap = cv2.VideoCapture(0)
     # resolution settings
