@@ -22,6 +22,10 @@ class Blink:
         self.start_time = time.time()
         self.frame = None
 
+        self.eyes_closed = False
+        self.eye_close_start_time = None
+        self.extra_penalty = 0.0
+
         ## Calibration 
         self.button = True
         self.num_frame = 0
@@ -41,7 +45,20 @@ class Blink:
             prev_blink_count = self.blink_counter.blink_counter
             self.blink_counter._update_blink_detection(ear)
             now = time.time()
-            
+
+            if ear < self.blink_counter.threshold:
+                if not self.eyes_closed:
+                    self.eyes_closed = True
+                    self.eye_close_start_time = now
+                else :
+                    duration = now - self.eye_close_start_time
+                    if duration > 1:  # 1초 이상 눈을 감고 있으면
+                        self.extra_penalty  = min(duration / 5.0, 1.0) # 감은 시간에 비례해서 페널티
+            else:
+                self.eyes_closed = False
+                self.eye_close_start_time = None
+                self.extra_penalty = 0.0
+
             ### modified 250527
             self.num_frame += 1
             if self.button and self.num_frame <= self.FRAME_THRESHOLD:
@@ -83,6 +100,8 @@ class Blink:
                 self.blink_counter._update_plot(ear)
         else :
             normalized_score = 0.0
+        
+        normalized_score = min(normalized_score + self.extra_penalty, 1.0)
 
         if self.display:
             # Display the frame with blink overlay (if needed)
