@@ -21,7 +21,7 @@ from predictor import RealtimePredictor
 
 DISPLAY = True             # camera display
 DISPLAY_GRAPH = False       # graph display
-DISPLAY_OVERALL = False     # overall concentration display
+DISPLAY_OVERALL = True     # overall concentration display
 rnn_model_path = './models/drowsiness_rnn_best.h5'
 
 
@@ -148,19 +148,23 @@ def main():
         predictor.update(head_score, gaze_score, blink_score)
         pred_class = predictor.predict_if_ready()
         if pred_class is not None:
-            print(f"prediction: {pred_class}")  
+            #print(f"prediction: {pred_class}")  
+            if type(pred_class) is int:
+                if pred_class == 0:
+                    result = Command.DO_NOTHING
+                elif pred_class == 1:
+                    result = Command.ATTACK_1
+                elif pred_class == 2:
+                    result = Command.ATTACK_2
 
-        # TODO : should be replaced with a model
-        result = Command.DO_NOTHING
-
-        ## send to robot
-        asyncio.run(bt.send_command(result))
+                ## send to robot
+                asyncio.run(bt.send_command(result))
 
         # 전체 집중도 예시 (가중 평균)
         # overall = (head_score*0.3 + gaze_score*0.3 + blink_score*0.4)
         if (DISPLAY_OVERALL):
             graph._update_plot(0, gaze_score, blink_score, head_score)
-        print(f"H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}")
+        #print(f"H: {head_score:.2f}, G: {gaze_score:.2f}, B: {blink_score:.2f}")
         if DISPLAY:
             # 2) 가로로 이어붙이기
             all_combined = cv2.hconcat([hp.frame,

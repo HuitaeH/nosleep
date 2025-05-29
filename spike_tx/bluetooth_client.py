@@ -1,6 +1,7 @@
 import bluetooth
 import asyncio
 from enum import Enum
+import sys
 
 class Command(Enum):
     DO_NOTHING = "DO NOTHING"
@@ -49,6 +50,7 @@ class BT:
             return True
         except OSError:
             print("Connection failed.")
+            sys.exit(1)
             return False
 
     async def send_command(self, command: Command):
