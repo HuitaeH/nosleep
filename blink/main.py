@@ -46,7 +46,7 @@ class Blink:
             self.blink_counter._update_blink_detection(ear)
             now = time.time()
 
-            if ear < self.blink_counter.threshold:
+            if ear < self.blink_counter.EAR_THRESHOLD:
                 if not self.eyes_closed:
                     self.eyes_closed = True
                     self.eye_close_start_time = now
